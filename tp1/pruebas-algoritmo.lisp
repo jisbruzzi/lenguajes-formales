@@ -2,6 +2,7 @@
 (load 'generalidades)
 (load 'primitivas)
 (load 'algoritmo)
+(load 'herramientasi)
 
 (defun test (elemento resultado)
     (if (equal elemento resultado)
@@ -54,3 +55,16 @@
 (test (GPS 'a 'd grafo) '(d c b a))
 (test (GPS 'a 'l grafo) '(L H G F A))
 (test (GPS 'a 'k grafo) '(K J N D C B A))
+
+(test 
+  (ruta_para_mostrar '(K J N D C B A))
+  '((RECORRER 3 CUADRAS POR
+   PASEOCOLON Y DOBLAR EN
+   VENEZUELA)
+  (RECORRER 2 CUADRAS POR
+   VENEZUELA Y DOBLAR EN
+   DEFENSA)
+  (RECORRER 1 CUADRAS POR
+   DEFENSA HASTA LLEGAR A
+   DESTINO))
+)

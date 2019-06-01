@@ -1,6 +1,6 @@
 (load 'mapa)
 (load 'algoritmo)
-(load 'herramientasInterface)
+(load 'herramientasi)
 
 
 (defun obtenerCalleValida ()
@@ -42,7 +42,7 @@
   ((lambda () 
     (print (list 'Voy 'a 'buscar 'el 'camino 'desde e1 'a e2))
     (print (list 'En 'mi 'grafo 'implica 'de (vertice_de_esquina e1) 'a (vertice_de_esquina e2) ))
-    (print (GPS (vertice_de_esquina e1) (vertice_de_esquina e2) grafo))
+    (print (ruta_para_mostrar (GPS (vertice_de_esquina e1) (vertice_de_esquina e2) grafo)))
   ))
   
 ))
