@@ -22,26 +22,65 @@
 (o (Balcarce Belgrano))
 ) )
 
+
+;---------------- parte con primitivas usuales -------------------
+(defun pertenece (e l)
+  
+)
+
+;la trayectoria va a ser una lista de vértices (nombre "código")
+;el primer elemento de ña trayectoria es el "fin", el último elemento de la trayectoria es el "inicio"
+;un nodo va a ser un vértice en nomnbre "código"
+
+'(defun vertices_iguales (v1 v2) 
+  (and
+    (eq (car v1) (car v2))
+    (eq (cadr v1) (cadr v2))
+  )
+)
+
+(defun vertices_iguales (v1 v2) 
+  (eq v1 v2)
+)
+
+
+;implementación
 (defun trayectoria_alcanza (trayectoria nodo)
-  nil
-  ;implementación
+  (vertices_iguales (car trayectoria) nodo)
 )
 
-(defun trayectoria_con_vertice (vertice trayectoria) 
-  nil
-  ;implementación
+;implementación
+(defun construir_trayectoria_hacia_vertice (vertice trayectoria) 
+  (cons vertice trayectoria)
 )
 
+;implementación
 (defun vertices_de_trayectoria (trayectoria)
-  nil
-  ;implementacion
+  treyectoria
 )
 
+;implementación
 (defun vecinos (vertice grafo)
-  nil
-  ;implementacion
+  (cadr
+    (reduce
+      (lambda (x y)
+        (cond
+          ((eq vertice (car x)) x)
+          ((eq vertice (car y)) y)
+          ( T nil )
+        )
+      )
+      grafo
+    )
+  )
 )
 
+(assert (equal (vecinos 'a grafo) '(b f)))
+(assert (equal (vecinos 'b grafo) '(a c)))
+(assert (equal (vecinos 'i grafo) '(m j)))
+
+
+; ----------------- parte abstracta, independiente de la implementación de los tipos de dato ------------
 (defun posibles_vecinos (grafo trayectoria)
   (diferencia
     (vecinos (ultimo_vertice trayectoria) grafo)
@@ -49,9 +88,11 @@
   )
 )
 
+(print (posibles_vecinos grafo '(a b c)))
+
 (defun expandir_trayectoria (inicio fin grafo trayectoria)
   (mapcar
-    (lambda (v) (trayectoria_con_vertice v trayectoria))
+    (lambda (v) (construir_trayectoria_hacia_vertice v trayectoria))
     (posibles_vecinos grafo trayectoria)
   )
 )
