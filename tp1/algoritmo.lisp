@@ -2,7 +2,6 @@
 (load 'generalidades)
 (load 'primitivas)
 
-
 ; ----------------- parte abstracta, independiente de la implementación de los tipos de dato ------------
 (defun posibles_vecinos (grafo trayectoria)
   (diferencia
