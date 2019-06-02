@@ -1,0 +1,6 @@
+(defmacro l (nombre form)
+  `(list (quote ,nombre) (lambda (expr evfn) ,form))
+)
+(defmacro ev (form)
+  `(funcall evfn ,form)
+)

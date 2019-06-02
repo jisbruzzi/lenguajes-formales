@@ -5,6 +5,7 @@
         (print (list "error:" elemento " es distinto de " resultado))
     )
 )
+
 ; con numeros
 (test (evaluar '2 nil) 2)
 ; con valores booleanos true false
@@ -12,16 +13,18 @@
 (test (evaluar 't nil) t)
 ;asociaciones en el ambiente
 (test (evaluar 'A '(A 2) ) 2)
-(test (evaluar 'B '(A 2 B 10) 10)
+(test (evaluar 'B '(A 2 B 10)) 10)
 ;la función quote
 (test (evaluar '(quote A) nil) 'A)
 (test (evaluar '(quote 1) nil) 1)
 (test (evaluar '(quote (car a)) nil ) '(car a))
-(test (evaluar '(quote ((2 3) (4 5)))) '((2 3) (4 5)))
+(test (evaluar '(quote ((2 3) (4 5))) nil) '((2 3) (4 5)))
 ;funciones booleanas and y or
 (test (evaluar '(and (or t nil) t) nil ) t)
 (test (evaluar '(and (or t nil) (or nil nil)) nil) 'nil  )
 (test (evaluar '(or (or t nil) (or nil nil )) nil) 't  )
+
+'(
 ;Función car + ambiente
 (test (evaluar '(car (list a 2 3)) '(a 100) ) '100  )
 ;Función cdr + ambiente
@@ -38,3 +41,8 @@
 ;Funciones definidas en el ambiente
 (test (evaluar '(fact 5) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1))))) ) ) 120  )
 (test (evaluar '(mapcar 'fact (quote ( 2 3 4 5 ) )) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1)))))) ) (2 6 24 120)  )
+
+
+
+
+)

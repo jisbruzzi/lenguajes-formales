@@ -1,0 +1,10 @@
+(defun en_diccionario (diccionario clave)
+  (not (null (buscar_diccionario diccionario clave)))
+)
+(defun buscar_diccionario (diccionario clave)
+  (cond
+    ((null diccionario) nil)
+    ((eq (caar diccionario) clave) (cadar diccionario))
+    (T (buscar_diccionario (cdr diccionario) clave))
+  )
+)
