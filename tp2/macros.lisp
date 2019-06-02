@@ -4,3 +4,11 @@
 (defmacro ev (form)
   `(funcall evfn ,form)
 )
+(defmacro cf (nombre)
+  `(list 
+    (quote ,nombre)
+    (lambda (argumentos evfn)
+      (apply ',nombre argumentos)
+    )
+  )
+)

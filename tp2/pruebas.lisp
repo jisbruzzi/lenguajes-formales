@@ -6,6 +6,7 @@
     )
 )
 
+'(
 ; con numeros
 (test (evaluar '2 nil) 2)
 ; con valores booleanos true false
@@ -23,8 +24,9 @@
 (test (evaluar '(and (or t nil) t) nil ) t)
 (test (evaluar '(and (or t nil) (or nil nil)) nil) 'nil  )
 (test (evaluar '(or (or t nil) (or nil nil )) nil) 't  )
-
-'(
+;función if
+(test (evaluar '(if t 5 9) nil) 5)
+(test (evaluar '(if nil 5 9) nil) 9)
 ;Función car + ambiente
 (test (evaluar '(car (list a 2 3)) '(a 100) ) '100  )
 ;Función cdr + ambiente
@@ -35,11 +37,13 @@
 (test (evaluar '(lambda (x) (* x 2)) nil) '(lambda (x) (* x 2))  )
 (test (evaluar '(mapcar (lambda (x) (cons x (cdr '(3 4 5)))) '(1 2 3)) nil) '((1 4 5) (2 4 5)(3 4 5))  )
 ;Forma funcional mapcar
-(test (evaluar '(mapcar 'numberp (quote (4)))) '(t)  )
-(test (evaluar '(mapcar 'numberp (quote (4 5 6 nil)))) '(t t t nil)  )
-(test (evaluar '(mapcar 'car (quote ( (2 3) (4 5 ))) )) '(2 4)  )
+(test (evaluar '(mapcar 'numberp (quote (4))) nil) '(t)  )
+(test (evaluar '(mapcar 'numberp (quote (4 5 6 nil))) nil) '(t t t nil)  )
+(test (evaluar '(mapcar 'car (quote ( (2 3) (4 5 ))) ) nil) '(2 4)  )
+)
 ;Funciones definidas en el ambiente
 (test (evaluar '(fact 5) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1))))) ) ) 120  )
+'(
 (test (evaluar '(mapcar 'fact (quote ( 2 3 4 5 ) )) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1)))))) ) (2 6 24 120)  )
 
 
