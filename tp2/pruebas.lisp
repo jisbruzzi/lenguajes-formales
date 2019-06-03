@@ -6,7 +6,6 @@
     )
 )
 
-'(
 ; con numeros
 (test (evaluar '2 nil) 2)
 ; con valores booleanos true false
@@ -55,8 +54,6 @@
     )
   ) 
 ) ) 120  )
-
-)
 (test 
   (evaluar 
     '(mapcar 
