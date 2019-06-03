@@ -40,13 +40,36 @@
 (test (evaluar '(mapcar 'numberp (quote (4))) nil) '(t)  )
 (test (evaluar '(mapcar 'numberp (quote (4 5 6 nil))) nil) '(t t t nil)  )
 (test (evaluar '(mapcar 'car (quote ( (2 3) (4 5 ))) ) nil) '(2 4)  )
-)
 ;Funciones definidas en el ambiente
-(test (evaluar '(fact 5) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1))))) ) ) 120  )
-'(
-(test (evaluar '(mapcar 'fact (quote ( 2 3 4 5 ) )) '(fact (lambda(n)(if(eq n 0) 1 (* n (fact (- n 1)))))) ) (2 6 24 120)  )
+(test (evaluar '(doble 5) '(doble 
+  (lambda(n)
+    (* n 2 )
+  ) 
+) ) 10  )
+;Funcion recursiva definida en el ambiente
+(test (evaluar '(fact 5) '(fact 
+  (lambda(n)
+    (if (eq n 0) 
+      1 
+      (* n (fact (- n 1)))
+    )
+  ) 
+) ) 120  )
 
-
-
-
+)
+(test 
+  (evaluar 
+    '(mapcar 
+      'fact 
+      (quote ( 2 3 4 5 ) )
+    ) 
+    '(fact 
+      (lambda (n) 
+        (if
+          (eq n 0) 
+          1 
+          (* n (fact (- n 1)))))
+    ) 
+  )
+  '(2 6 24 120)  
 )

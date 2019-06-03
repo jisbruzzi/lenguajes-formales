@@ -1,6 +1,16 @@
 (load 'control_flujo)
 (load 'conocidas)
 
+(defun pertenece (e l)
+  (reduce 
+    (lambda (x y) (or x y))
+    (mapcar 
+      (lambda (x) (eq e x))
+      l
+    )
+  )
+)
+
 (defun buscar (nombre ambiente)
   (cond
     ((null  nombre) nil)
@@ -13,33 +23,36 @@
 )
 
 (defun ampliar_ambiente (nombres valores ambiente)
-  (append
-    (reduce 'append (mapcar (lambda (x y) (list x y)) nombres valores))
-    ambiente
+  (cond
+    (
+      (null ambiente) 
+      (reduce 'append (mapcar (lambda (x y) (list x y)) nombres valores))
+    )
+    (
+      (pertenece (car ambiente) nombres)
+      (ampliar_ambiente nombres valores (cddr ambiente))
+    )
+    (
+      T
+      (append
+        (list (car ambiente) (cadr ambiente))
+        (ampliar_ambiente nombres valores (cddr ambiente))
+      )
+    )
   )
 )
 
 (defun aplicar (fn argumentos ambiente)
-  (print 'aplicar)
-  (if (not (null fn))
-    (let 
-      (print fn)
-      (print argumentos)
-      (print ambiente)
-    )
-    (+ 1 2)
-  )
-  
   (cond
     ((numberp fn) fn)
     ((null fn) nil)
     (
       (and (atom  fn) (es_conocida fn))
       (funcall 
-        (funcion_conocida fn) 
+        (funcion_conocida fn)
         argumentos 
         (lambda (e) (evaluar e ambiente))
-      ) 
+      )
     )
     (
       (and (atom  fn) (not (es_conocida fn)))

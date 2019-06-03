@@ -7,8 +7,10 @@
     (cf list)
     (cf *)
     (cf +)
+    (cf -)
     (cf cons)
     (cf numberp)
+    (cf eq)
     (list 
       (quote mapcar)
       (lambda (args evfn)
@@ -16,7 +18,7 @@
           'mapcar 
           (cons
             (lambda (elemento)
-              (funcall evfn 
+              (funcall evfn
                   (list (car args) (list `quote elemento))
               )
             )
