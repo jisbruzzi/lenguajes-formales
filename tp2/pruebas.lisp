@@ -5,7 +5,6 @@
         (print (list "error:" elemento " es distinto de " resultado))
     )
 )
-
 ; con numeros
 (test (evaluar '2 nil) 2)
 ; con valores booleanos true false
@@ -69,4 +68,16 @@
     ) 
   )
   '(2 6 24 120)  
+)
+
+(test
+  (evaluar
+    '(mapcar
+      (lambda (x y) (+ x y))
+      '(1 2 3)
+      '(4 5 6)
+    )
+    nil
+  )
+  '(5 7 9)
 )

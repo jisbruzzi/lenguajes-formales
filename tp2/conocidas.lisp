@@ -17,9 +17,12 @@
         (apply 
           'mapcar 
           (cons
-            (lambda (elemento)
+            (lambda (&rest elementos)
               (funcall evfn
-                  (list (car args) (list `quote elemento))
+                (cons 
+                  (car args) 
+                  (mapcar (lambda (e) (list `quote e)) elementos)
+                )
               )
             )
             (cdr args)
