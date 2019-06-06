@@ -1,8 +1,31 @@
-(load 'mapa)
-(load 'generalidades)
-(load 'primitivas)
 (load 'algoritmo)
-(load 'herramientasi)
+
+
+(setq grafo '(
+(a(b f)) (b(a c )) (c(b d )) (d(c n e)) (e(d)) (f(g ))
+(g(h)) (h(i l)) (i(m j)) (j( k)) (k(o))
+(l (b f)) (m (l c)) (n ( j m)) (o(e n))
+) )
+
+(setq diccionario '(
+(a (PaseoColon Independencia))
+(b (PaseoColon Chile))
+(c (PaseoColon Mexico ))
+(d (PaseoColon Venezuela))
+(e (PaseoColon Belgrano))
+(f (Independencia Balcarce))
+(g (Independencia Defensa))
+(h (Defensa Chile))
+(i (Defensa Mexico))
+(j (Defensa Venezuela))
+(k (Defensa Belgrano ))
+(l (Balcarce Chile ))
+(m (Balcarce Mexico))
+(n (Balcarce Venezuela))
+(o (Balcarce Belgrano))
+) )
+
+; --- pruebas ---- ;
 
 (defun test (elemento resultado)
     (if (equal elemento resultado)
@@ -58,6 +81,21 @@
 
 (test 
   (ruta_para_mostrar '(K J N D C B A))
+  '((RECORRER 3 CUADRAS POR
+   PASEOCOLON Y DOBLAR EN
+   VENEZUELA)
+  (RECORRER 2 CUADRAS POR
+   VENEZUELA Y DOBLAR EN
+   DEFENSA)
+  (RECORRER 1 CUADRAS POR
+   DEFENSA HASTA LLEGAR A
+   DESTINO))
+)
+
+
+; -------- PRUEBA GENERAL/DE INTEGRACIÓN ---- ;
+(test 
+  (GPS_INTERFAZ_ENUNCIADO '(PaseoColon Independencia) '(Defensa Belgrano) grafo)
   '((RECORRER 3 CUADRAS POR
    PASEOCOLON Y DOBLAR EN
    VENEZUELA)
