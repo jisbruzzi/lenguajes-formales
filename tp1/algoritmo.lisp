@@ -115,15 +115,15 @@
   )
 )
 
-
+(defun trayectorias_que_alcanzan (nodo trayectorias)
+  (filtrar 
+    (lambda (tr) (trayectoria_alcanza tr nodo ) )
+    trayectorias
+  )
+)
 
 (defun trayectoria_que_alcanza (nodo trayectorias)
-  (car 
-    (filtrar 
-      (lambda (tr) (trayectoria_alcanza tr nodo ) )
-      trayectorias
-    )
-  )
+  (car (trayectorias_que_alcanzan nodo trayectorias))
 )
 
 
@@ -139,7 +139,7 @@
 (defun GPS (inicio fin grafo &optional (trayectorias (list (list inicio))))
   (cond 
     ( (null trayectorias) nil )
-    ( (existe_trayectoria_que_alcanza fin trayectorias) (trayectoria_que_alcanza fin trayectorias) )
+    ( (existe_trayectoria_que_alcanza fin trayectorias) (trayectorias_que_alcanzan fin trayectorias) )
     ( T (GPS inicio fin grafo (expandir_trayectorias grafo trayectorias)))
   )
 )
@@ -282,7 +282,7 @@
 ; ---------- INTERFAZ "EN CASTELLANO" ------ ;
 
 (defun GPS_INTERFAZ_ENUNCIADO (inicio fin grafo)
-  (ruta_para_mostrar
+  (mapcar 'ruta_para_mostrar
     (GPS
       (vertice_de_esquina inicio)
       (vertice_de_esquina fin)
