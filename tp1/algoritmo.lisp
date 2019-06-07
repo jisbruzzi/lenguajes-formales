@@ -265,13 +265,22 @@
   )
 )
 
+(defun valor_default (default v)
+  (if (null v)
+    default
+    v
+  )
+)
+
 (defun ruta_para_mostrar (ruta)
-  (mapcar 'traducir_movimiento_completo_al_castellano
-    (agregar_calle_siguiente 
-      (contar_movimientos 
-        (colocar_unos 
-          (calles_recorridas_por_ruta 
-            (mapcar 'esquina_de_vertice (reverse ruta))
+  (valor_default (list 'ya 'se 'encuentra 'en 'destino) 
+    (mapcar 'traducir_movimiento_completo_al_castellano
+      (agregar_calle_siguiente 
+        (contar_movimientos 
+          (colocar_unos 
+            (calles_recorridas_por_ruta 
+              (mapcar 'esquina_de_vertice (reverse ruta))
+            )
           )
         )
       )

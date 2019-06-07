@@ -78,6 +78,7 @@
 (test (GPS 'a 'd grafo) '((d c b a)))
 (test (GPS 'a 'l grafo) '((L H G F A)))
 (test (GPS 'a 'k grafo) '((K J N D C B A) (K J I H G F A)) )
+(test (GPS 'a 'a grafo) '((a)) )
 
 (test 
   (ruta_para_mostrar '(K J N D C B A))
@@ -107,4 +108,9 @@
       (RECORRER 4 CUADRAS POR DEFENSA HASTA LLEGAR A DESTINO)
     )
   )
+)
+
+(test 
+  (GPS_INTERFAZ_ENUNCIADO '(PaseoColon Independencia) '(PaseoColon Independencia) grafo)
+  (list 'YA 'SE 'ENCUENTRA 'EN 'DESTINO)
 )
