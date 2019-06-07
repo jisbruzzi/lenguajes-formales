@@ -118,7 +118,7 @@
     ((null  nombre) nil)
     ((eq 'T nombre) T)
     ((numberp nombre) nombre)
-    ((null ambiente) (exit (print "INTERRUPCION: NOMBRE NO ESTÁ EN EL AMBIENTE")))
+    ((null ambiente) (exit (print (list "INTERRUPCION: NOMBRE NO ESTÁ EN EL AMBIENTE:" nombre))))
     ((eq (car ambiente) nombre) (cadr ambiente))
     (T (buscar nombre (cddr ambiente)))
   )
