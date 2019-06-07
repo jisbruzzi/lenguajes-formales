@@ -81,3 +81,23 @@
   )
   '(5 7 9)
 )
+
+; --------- otra prueba de mapcar n-ádico --------- ;
+
+(test (evaluar '(mapcar 'union '((a v e)(m a s)) '((s e a)(m e n o s)))
+  '(union (lambda(x y)(if (null x) y 
+                        (if (pertenece (car x)y) (union (cdr x)y)
+                             (cons (car x)(union (cdr x)y))
+                        )
+                      )
+           )
+    pertenece (lambda (a li)(if (null li)nil
+                                 (if (eq a (car li)) t
+                                 (pertenece a (cdr li))
+                                 )
+                            )
+               )
+    )
+   )
+'((v s e a) (a m e n o s))
+)

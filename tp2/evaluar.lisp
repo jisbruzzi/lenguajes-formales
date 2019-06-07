@@ -71,6 +71,7 @@
     (cf cons)
     (cf numberp)
     (cf eq)
+    (cf null)
     (list 
       (quote mapcar)
       (lambda (args evfn)
@@ -117,7 +118,7 @@
     ((null  nombre) nil)
     ((eq 'T nombre) T)
     ((numberp nombre) nombre)
-    ((null ambiente) nil);estom implica que no es una constante
+    ((null ambiente) (exit (print "INTERRUPCION: NOMBRE NO ESTÁ EN EL AMBIENTE")))
     ((eq (car ambiente) nombre) (cadr ambiente))
     (T (buscar nombre (cddr ambiente)))
   )
@@ -157,7 +158,11 @@
     )
     (
       (and (atom  fn) (not (es_conocida fn)))
-      (aplicar (buscar fn  ambiente) argumentos ambiente)
+      (aplicar 
+          (buscar fn  ambiente) 
+          argumentos 
+          ambiente
+      )
     )
     (
       (eq (car fn) 'lambda)
