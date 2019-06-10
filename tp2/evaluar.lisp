@@ -12,10 +12,13 @@
 
 ; ---------- DICCIONARIO DE FUNCIONES CONOCIDAS QUE CONTROLAN EL FLUJO DEL PROGRAMA ----- ;
 (defmacro l (nombre form)
-  `(list (quote ,nombre) (lambda (expr evfn) ,form))
+  `(list (quote ,nombre) (lambda (expr evfn apfn) ,form))
 )
 (defmacro ev (form)
   `(funcall evfn ,form)
+)
+(defmacro ap (fn args)
+  `(funcall apfn ,fn ,args)
 )
 
 (defun hacer_while (p f e)
@@ -52,8 +55,8 @@
     )
     (l while
       (hacer_while
-        (lambda (argwhile)(not (null (ev (list (cadr expr) (q argwhile))  ))))
-        (lambda (argwhile) (ev (list (caddr expr) (q argwhile) )))
+        (lambda (argwhile) (not (null (ap (cadr expr) (list argwhile))  )))
+        (lambda (argwhile) (ap (caddr expr) (list argwhile))  )
         (ev (cadddr expr))
       )
     )
@@ -207,6 +210,7 @@
         (funcion_control_flujo (car expresion))
         expresion 
         (lambda (e) (evaluar e ambiente))
+        (lambda (fn args) (aplicar fn args ambiente))
       )
     )
     (
