@@ -1,5 +1,19 @@
 ; ------------------------ GENERALIDADES -----;
-
+(defun iguales_a_todo_nivel (x y)
+  (cond
+    (
+      (and (atom x) (atom y))
+      (eq x y)
+    )
+    (
+      (and (listp x) (listp y))
+      (reduce (lambda (xx yy) (and xx yy))
+        (mapcar 'iguales_a_todo_nivel x y)
+      )
+    )
+    (T nil)
+  )
+)
 (defun filtrar (f L)
   (reduce
     (lambda (x y) 
@@ -84,13 +98,29 @@
   )
 )
 
-
-
 (defun ultimo_vertice (trayectoria)
   (car trayectoria)
 )
+
+(defun trayectoria_pasa_por (trayectoria nodo)
+  (cond 
+    ( (null trayectoria ) nil)
+    ( (eq (car trayectoria) nodo) T)
+    (T (trayectoria_pasa_por (cdr trayectoria) nodo))
+  )
+)
 ; -------------------------- ALGORITMO --------a------- ;
 ; ----------------- parte abstracta, independiente de la implementación de los tipos de dato ------------
+(defun trayectoria_hasta (nodo trayectoria)
+  (cond
+    ( (null trayectoria) nil)
+    ( (eq (car trayectoria) nodo) trayectoria)
+    (T (trayectoria_hasta nodo (cdr trayectoria)))
+  )
+)
+(defun trayectorias_hasta (nodo trayectorias)
+  (mapcar (lambda (tr) (trayectoria_hasta nodo tr)) trayectorias)
+)
 (defun posibles_vecinos (grafo trayectoria)
   (diferencia
     (vecinos (ultimo_vertice trayectoria) grafo)
@@ -98,22 +128,41 @@
   )
 )
 
-(defun expandir_trayectoria (grafo trayectoria)
-  (mapcar
-    (lambda (v) (construir_trayectoria_hacia_vertice v trayectoria))
-    (posibles_vecinos grafo trayectoria)
+(defun expandir_trayectoria (grafo trayectoria lam)
+  (funcall lam trayectoria
+    (mapcar
+      (lambda (v) (construir_trayectoria_hacia_vertice v trayectoria))
+      (posibles_vecinos grafo trayectoria)
+    )
   )
 )
 
-(defun expandir_trayectorias (grafo trayectorias)
+(defun expandir_trayectorias_lambda (grafo trayectorias lam)
   (apply 
     'append 
     (mapcar 
-      (lambda (tr) (expandir_trayectoria grafo tr)) 
+      (lambda (tr) (expandir_trayectoria grafo tr lam)) 
       trayectorias
     )
   )
 )
+
+
+(defun expandir_trayectorias (grafo trayectorias)
+  (expandir_trayectorias_lambda grafo trayectorias (lambda (tray res) res))
+)
+
+(defun expandir_trayectorias_si_posible (grafo trayectorias)
+  (expandir_trayectorias_lambda grafo trayectorias 
+    (lambda (tray res) 
+      (if (null res)
+        (list tray)
+        res
+      )
+    )
+  )
+)
+
 
 (defun trayectorias_que_alcanzan (nodo trayectorias)
   (filtrar 
@@ -124,6 +173,13 @@
 
 (defun trayectoria_que_alcanza (nodo trayectorias)
   (car (trayectorias_que_alcanzan nodo trayectorias))
+)
+
+(defun trayectorias_que_pasan_por (nodo trayectorias)
+  (filtrar
+    (lambda (tr) (trayectoria_pasa_por tr nodo))
+    trayectorias
+  )
 )
 
 
@@ -145,11 +201,53 @@
 )
 
 
+(defun GPS_TODOS_CAMINOS (inicio fin grafo &optional (trayectorias (list (list inicio))) (trayectorias_anteriores nil) )
+  (cond 
+    ( (null trayectorias) nil )
+    (
+      (iguales_a_todo_nivel trayectorias trayectorias_anteriores) 
+      (trayectorias_hasta fin (trayectorias_que_pasan_por fin trayectorias))
+    )
+    ( T (GPS_TODOS_CAMINOS inicio fin grafo (expandir_trayectorias_si_posible grafo trayectorias) trayectorias))
+  )
+)
+
+(defun trayectoria_mas_lambda (trayectorias lam &optional (la_mas nil))
+  (cond
+    ((null trayectorias) la_mas)
+    ((null la_mas) 
+      (trayectoria_mas_lambda trayectorias lam (car trayectorias))
+    )
+    (
+      (funcall lam (length (car trayectorias)) (length la_mas) )
+      (trayectoria_mas_lambda (cdr trayectorias) lam (car trayectorias))
+    )
+    (
+      T
+      (trayectoria_mas_lambda (cdr trayectorias) lam la_mas)
+    )
+  )
+)
+(defun trayectoria_mas_corta (trayectorias)
+  (trayectoria_mas_lambda trayectorias (lambda (x y) (< x y)) )
+)
+(defun trayectoria_mas_larga (trayectorias)
+  (trayectoria_mas_lambda trayectorias (lambda (x y) (> x y)) )
+)
+
+(defun GPS_UNO_MENOR_UNO_MAYOR (inicio fin grafo)
+  (list 
+    (trayectoria_mas_corta (GPS_TODOS_CAMINOS inicio fin grafo))
+    (trayectoria_mas_larga (GPS_TODOS_CAMINOS inicio fin grafo))
+  )
+)
+
+
 ; --------------------- INTERFAZ con esto se puede tener una función GPS que traduzca caminos al castellano como en el enunciado ----- ;
 
 
 (defun calle_valida (calle)
-  (pertenece (print calle )
+  (pertenece calle
     (reduce
       'append
       (mapcar 
@@ -299,5 +397,17 @@
     )
   )
 )
+
+(defun GPS_UNO_MENOR_UNO_MAYOR_INTERFAZ_ENUNCIADO (inicio fin grafo)
+  (mapcar 'ruta_para_mostrar
+    (GPS_UNO_MENOR_UNO_MAYOR
+      (vertice_de_esquina inicio)
+      (vertice_de_esquina fin)
+      grafo
+    )
+  )
+)
+
+
 
 

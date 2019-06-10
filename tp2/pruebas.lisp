@@ -5,6 +5,7 @@
         (print (list "error:" elemento " es distinto de " resultado))
     )
 )
+
 ; con numeros
 (test (evaluar '2 nil) 2)
 ; con valores booleanos true false
@@ -101,3 +102,13 @@
    )
 '((v s e a) (a m e n o s))
 )
+
+
+; -------- while para modificación promocional ------- ;
+(test (evaluar 
+  '(while (lambda (x) (NoCero (car x) ) ) 
+    (lambda (x) (list (Restar1 (car x)) (* (car x) (cadr x)) ) )
+    (car '( (5 1) 8 7) )
+  )
+  '(NoCero (lambda(x)(not (eq x 0))) Restar1 (lambda(n)(- n 1) ) )
+) '(0 120))

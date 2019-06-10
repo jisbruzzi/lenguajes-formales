@@ -46,15 +46,15 @@
 
 
 (test 
-  (expandir_trayectoria grafo '(d c b a))
+  (expandir_trayectoria grafo '(d c b a) (lambda (tr x) x) )
   '((n d c b a) (e d c b a))
 )
 (test
-  (expandir_trayectoria grafo '(n d c b a))
+  (expandir_trayectoria grafo '(n d c b a) (lambda (tr x) x) )
   '((J N D C B A) (M N D C B A))
 )
 (test
-  (expandir_trayectoria grafo '(e d c b a))
+  (expandir_trayectoria grafo '(e d c b a) (lambda (tr x) x) )
   nil
 )
 
@@ -79,6 +79,8 @@
 (test (GPS 'a 'l grafo) '((L H G F A)))
 (test (GPS 'a 'k grafo) '((K J N D C B A) (K J I H G F A)) )
 (test (GPS 'a 'a grafo) '((a)) )
+
+
 
 (test 
   (ruta_para_mostrar '(K J N D C B A))
@@ -112,5 +114,53 @@
 
 (test 
   (GPS_INTERFAZ_ENUNCIADO '(PaseoColon Independencia) '(PaseoColon Independencia) grafo)
-  (list 'YA 'SE 'ENCUENTRA 'EN 'DESTINO)
+  (list (list 'YA 'SE 'ENCUENTRA 'EN 'DESTINO))
 )
+
+
+
+(test (GPS_TODOS_CAMINOS 'a 'k grafo) 
+  '(
+    (K J N D C B A) 
+    (K J I H G F L M N D C B A)
+    (K J N D C B L M I H G F A)
+    (K J N D C M I H G F A) 
+    (K J I H G F A)
+    (K J I H G F A) 
+    (K J I H G F A)
+    (K J I H G F A) 
+    (K J I H G F A)
+    (K J I H G F A) 
+    (K J N D C B L H G F A)
+  ) 
+)
+
+(test (GPS_UNO_MENOR_UNO_MAYOR 'a 'k grafo) 
+  '(
+    (K J N D C B A) 
+    (K J I H G F L M N D C B A)
+  ) 
+)
+
+(test 
+  (GPS_UNO_MENOR_UNO_MAYOR_INTERFAZ_ENUNCIADO 
+    '(PaseoColon Independencia) 
+    '(Defensa Belgrano) 
+    grafo
+  )
+  '(
+    (
+      (RECORRER 3 CUADRAS POR PASEOCOLON Y DOBLAR EN VENEZUELA)
+      (RECORRER 2 CUADRAS POR VENEZUELA Y DOBLAR EN DEFENSA)
+      (RECORRER 1 CUADRAS POR DEFENSA HASTA LLEGAR A DESTINO)
+    )
+    (
+      (RECORRER 3 CUADRAS POR PASEOCOLON Y DOBLAR EN VENEZUELA)
+      (RECORRER 1 CUADRAS POR VENEZUELA Y DOBLAR EN BALCARCE)
+      (RECORRER 3 CUADRAS POR BALCARCE Y DOBLAR EN INDEPENDENCIA)
+      (RECORRER 1 CUADRAS POR INDEPENDENCIA Y DOBLAR EN DEFENSA)
+      (RECORRER 4 CUADRAS POR DEFENSA HASTA LLEGAR A DESTINO)
+    )
+  )
+)
+

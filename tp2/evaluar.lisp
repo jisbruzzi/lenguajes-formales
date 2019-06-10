@@ -18,6 +18,17 @@
   `(funcall evfn ,form)
 )
 
+(defun hacer_while (p f e)
+  (if (null (funcall p e))
+    e
+    (hacer_while p f (funcall f e))
+  )
+)
+
+(defun q (x)
+  (list 'quote x)
+)
+
 (setq control_flujo
   (list
     (l quote (cadr expr))
@@ -36,6 +47,13 @@
     (l if
       (if (not (null (ev (cadr expr)) ))
         (ev (caddr expr))
+        (ev (cadddr expr))
+      )
+    )
+    (l while
+      (hacer_while
+        (lambda (argwhile)(not (null (ev (list (cadr expr) (q argwhile))  ))))
+        (lambda (argwhile) (ev (list (caddr expr) (q argwhile) )))
         (ev (cadddr expr))
       )
     )
@@ -64,6 +82,7 @@
   (list
     (cf car)
     (cf cdr)
+    (cf cadr)
     (cf list)
     (cf *)
     (cf +)
@@ -71,6 +90,7 @@
     (cf cons)
     (cf numberp)
     (cf eq)
+    (cf not)
     (cf null)
     (list 
       (quote mapcar)
