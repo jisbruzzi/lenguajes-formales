@@ -1,30 +1,32 @@
 (load 'interprete)
-'(
-  (int x)
-  (int z A = 10)
-  (main (
-    (z = A + 1)
-    (printf A)
-    (scanf x)
-    (if (a < X) (
-      (z += A)
-    ) else (
-      (z = 1)
-    ))
-    (while (x < 10) (
-      (printf x)
-      (x++)
-    ))
-  ))
-)
-
-
 
 (defun test (elemento resultado)
-    (if (equal elemento resultado)
-        (print "ok")
-        (print (list "error:" elemento " es distinto de " resultado))
-    )
+  (if (equal elemento resultado)
+    (print "ok")
+    (print (list "error:" elemento " es distinto de " resultado))
+  )
+)
+
+(test
+  (run '(
+    (int x)
+    (int z A = 10)
+    (main (
+      (z = A + 1)
+      (printf A)
+      (scanf x)
+      (if (a < X) (
+        (z += A)
+      ) else (
+        (z = 1)
+      ))
+      (while (x < 10) (
+        (printf x)
+        (x ++)
+      ))
+    ))
+  ) '(2))
+  '(10 2 3 4 5 6 7 8 9)
 )
 
 (test (valor '(4 < 5) nil)  T)
@@ -44,6 +46,24 @@
   )))
   nil
 ) '("si"))
+
+(test (run 
+  '((main (
+    (if (1) (
+      (printf "si")
+    ))
+  )))
+  nil
+) '("si"))
+
+(test (run 
+  '((main (
+    (if (0) (
+      (printf "si")
+    ))
+  )))
+  nil
+) '())
 
 (test (run 
   '((main (
