@@ -2,14 +2,122 @@
   (print mensaje)
   (exit)
 )
+
+(defun es_operador (a)
+  (pertenece a '(+ - * / % < > <= >= && || ^^ ==))
+)
+
+(defun buscar_en_memoria (k memoria)
+  (cond
+    ( (eq (car memoria) k) (cadr memoria) )
+    ( 
+      (null memoria) 
+      (exc (list "Una variable no se encuentra en el ambiente" k))
+    )
+    ( T (buscar_en_memoria k (cdr memoria)) )
+  )
+)
+
+(defun reemplazar_nil_por_cero (x) (if (null x) 0 x) )
+
+(defun operar (op izq der)
+  (reemplazar_nil_por_cero (cond
+    ((eq op '+) (+ izq der))
+    ((eq op '-) (- izq der))
+    ((eq op '*) (* izq der))
+    ((eq op '/) (/ izq der))
+    ((eq op '%) (% izq der))
+    ((eq op '<) (< izq der))
+    ((eq op '>) (> izq der))
+    ((eq op '<=) (<= izq der))
+    ((eq op '>=) (>= izq der))
+    ((eq op '&&) (and izq der))
+    ((eq op '||) (or izq der))
+    ((eq op '^^) (and (or izq der) (not (and izq der))))
+    ((eq op '==) (eq izq der))
+    (T (exc (list "No se sabe operar con el operador" op)))
+  ))
+)
+
+(defun valor (expresion memoria &optional (operadores nil) (operandos nil))
+  (cond
+    (
+      (and (atom expresion) (not (null expresion)))
+      (cond 
+        ((numberp expresion) expresion)
+        ((stringp expresion) expresion)
+        (T (buscar_en_memoria expresion memoria))
+      )
+    )
+    (
+      (and (null expresion) (null operadores))
+      (car operandos)
+    )
+    (
+      (and (null expresion) (not (null operadores)))
+      (valor
+        expresion
+        memoria
+        (cdr operadores)
+        (cons 
+          (operar (car operadores) (cadr operandos) (car operandos)) 
+          (cddr operandos)
+        )
+      )
+    )
+    (
+      (and (es_operador (car expresion)) (null operadores))
+      (valor 
+        (cdr expresion) 
+        memoria 
+        (cons (car expresion) operadores) 
+        operandos 
+      )
+    )
+    (
+      (and (es_operador (car expresion)) (not (null operadores)) )
+      (if (< (peso (car operadores)) (peso (car expresion)) )
+        (valor 
+          (cdr expresion) 
+          memoria 
+          (cons (car expresion) operadores) 
+          operandos
+        )
+        (valor
+          expresion
+          memoria
+          (cdr operadores)
+          operandos
+        )
+      )
+    )
+    (
+      (or (numberp (car expresion)) (symbolp (car expresion)))
+      (valor
+        (cdr expresion)
+        memoria
+        operadores
+        (cons (valor (car expresion) memoria) operandos)
+      )
+    )
+
+    (
+      T
+      (exc (list "No es una expresión cuyo valor sepa calcular." expresion))
+    )
+
+  )
+)
+
+
 (defun modificar_flujo (instruccion cola_programa entrada memoria salida)
   (cond
     (
       (es_if  instruccion)
       (if (not (eq (valor (cadr instruccion) memoria) 0 ))
-        (cons (caddr instruccion) cola_programa)
+        (append (caddr instruccion) cola_programa)
         (if (es_if_con_else instruccion)
-          (cons (car (cddddr instruccion)) cola_programa)
+          (append (car (cddddr instruccion)) cola_programa)
           cola_programa
         )
       )
@@ -39,28 +147,24 @@
     )
     (
       (es_asignacion instruccion)
-      (asignar (car instruccion) (valor (cddr entrada) memoria) memoria)
+      (asignar (car instruccion) (valor (cddr instruccion) memoria) memoria)
     )
     (
       (es_asignacion_operacion instruccion)
-      (asignar 
-        (car instruccion)
-        (modificar_memoria
-          (list 
-            (car instruccion) 
-            '= 
-            (car instruccion) 
-            (operacion_de (cadr instruccion))
-            (if (es_postfijo instruccion)
-              1
-              (valor (cddr entrada) memoria)
-            )
+      (modificar_memoria
+        (list 
+          (car instruccion) 
+          '= 
+          (car instruccion) 
+          (operacion_de (cadr instruccion))
+          (if (es_postfijo (cadr instruccion))
+            1
+            (valor (cddr instruccion) memoria)
           )
-          entrada
-          memoria
-          salida
         )
+        entrada
         memoria
+        salida
       )
     )
     (
@@ -88,7 +192,7 @@
   (cond
     ( 
       (es_printf instruccion)
-      (cons (valor (cdr instruccion) memoria) salida)
+      (cons (valor (cadr instruccion) memoria) salida)
     )
     (T salida)
   )
@@ -109,11 +213,29 @@
 (defun es_asignacion_operacion (instruccion) 
   (pertenece (cadr instruccion) '(+= -= *= /= %= ++ --))
 )
+(defun operacion_de (eqop) 
+  (cond
+    ((eq eqop '+=) '+)
+    ((eq eqop '-=) '-)
+    ((eq eqop '*=) '*)
+    ((eq eqop '/=) '/)
+    ((eq eqop '%=) '%)
+    ((eq eqop '++) '+)
+    ((eq eqop '--) '-)
+    (T (exc (list "No conozco la operación correspondiente a " eqop)))
+  )
+)
+(defun es_postfijo (eqop)
+  (or (eq '++ eqop) (eq '-- eqop))
+)
 (defun es_prefijo (instruccion) 
   (pertenece (car instruccion) '(++ --))
 )
 (defun es_if (instruccion) 
   (eq (car instruccion) 'if)
+)
+(defun es_if_con_else (instruccion) 
+  (eq (car (cdddr instruccion)) 'else)
 )
 (defun es_while (instruccion) 
   (eq (car instruccion) 'while)
@@ -139,17 +261,12 @@
   )
 )
 (defun ejec (prg ent mem &optional (sal nil))
-  (print 'eeeeeeeeeeeeeee)
-  (print prg)
-  (print ent)
-  (print mem)
-  (print sal)
   (cond
     ( (null prg) (reverse sal) )
     (
-      (es_funcion_conocida (car prg)) 
+      (es_funcion_conocida (car prg))
       (ejec
-        (cdr prg)
+        (modificar_flujo (car prg) (cdr prg) ent mem sal)
         (modificar_entrada (car prg) ent mem sal)
         (modificar_memoria (car prg) ent mem sal)
         (modificar_salida  (car prg) ent mem sal)
@@ -157,15 +274,31 @@
     )
     (
       T
-      (exc "Esa funcion no es conocida")
+      (exc (list "Esa funcion no es conocida" (car prg)))
     )
   )
 )
 
 (defun asignar (k v memoria)
-  (append (list k v) memoria)
+  (cond
+    (
+      (eq (car memoria) k)
+      (append (list k v) (cddr memoria))
+    )
+    (
+      (null memoria)
+      (list k v)
+    )
+    (
+      T
+      (append 
+        (list (car memoria) (cadr memoria)) 
+        (asignar k v (cddr memoria))
+      )
+    )
+  )
 )
-
+; ---- ejecuta  instrucciones de tipo INT ------ ;
 (defun asignar_declaracion_variables (instruccion memoria)
   (cond
     (
@@ -175,23 +308,23 @@
     ((null instruccion) memoria)
     (
       (and 
-	(symbolp (car instruccion)) 
-	(symbolp (cadr instruccion)) 
+	      (symbolp (car instruccion))
+	      (eq (cadr instruccion) '=)
+	      (not (symbolp (caddr instruccion)))
       )
       (asignar_declaracion_variables
-        (cdr instruccion)
-        (asignar (car instruccion) 0 memoria)
+        (cdddr instruccion)
+        (asignar (car instruccion) (caddr instruccion) memoria)
       )
     )
     (
       (and 
-	(print (symbolp (car instruccion))) 
-	(print (eq (print (cadr instruccion)) '=))
-	(print (not (symbolp (caddr instruccion)))) 
+	      (symbolp (car instruccion)) 
+	      (symbolp (cadr instruccion)) 
       )
       (asignar_declaracion_variables
-        (cdddr instruccion)
-        (asignar (car instruccion) (cadr instruccion) memoria)
+        (cdr instruccion)
+        (asignar (car instruccion) 0 memoria)
       )
     )
     (
@@ -202,10 +335,6 @@
 )
 ; -------------------------------- PRINCIPAL --------------------- ;
 (defun run (prg ent &optional (mem nil))
-  (print 'rrrrrrrrrrrrrr)
-  (print prg)
-  (print mem)
-  (print ent)
   (cond
     ((null prg) (exc "no hay programa"))
     (
