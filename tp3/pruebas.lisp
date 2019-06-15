@@ -29,12 +29,15 @@
   '(10 2 3 4 5 6 7 8 9)
 )
 
-(test (valor '(4 < 5) nil)  T)
-(test (valor '(N < 5) '(N 4))  T)
-(test (valor '(4 == 4) nil)  T)
-(test (valor '(N == 4) '(N 4))  T)
-(test (valor '(5 < 4) nil)  0)
-(test (valor '(5 < N) '(N 4))  0)
+(test (valor* '(4 < 5) nil)  T)
+(test (valor* '(N < 5) '(N 4))  T)
+(test (valor* '(4 == 4) nil)  T)
+(test (valor* '(N == 4) '(N 4))  T)
+(test (valor* '(5 < 4) nil)  0)
+(test (valor* '(5 < N) '(N 4))  0)
+
+
+
 
 (test (run 
   '((main (
@@ -125,4 +128,17 @@
     '(5)
   )
   '(120)
+)
+
+(test 
+  (run
+    '( 
+      (int n fact = 1)
+      (main (
+        (printf q)
+      ))
+    )
+    '(5)
+  )
+  '(excepcion ("Una variable no se encuentra en el ambiente" Q))
 )

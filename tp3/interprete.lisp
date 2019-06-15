@@ -1,26 +1,64 @@
+(defun ultimo (L)
+  (car (reverse L))
+)
+(defun sin_ultimo (L)
+  (reverse (cdr (reverse L)))
+)
+
+(defun es_valido (x)
+  (not (and
+    (listp x)
+    (eq (car x) 'excepcion)
+  ))
+)
+
+(defun todos (f L)
+  (reduce
+    (lambda (x y) (and x y))
+    (mapcar (lambda (x) (funcall f x)) L )
+  )
+)
+(defun primero (f L)
+  (reduce
+    (lambda (x y) 
+      (if (funcall f x)
+        x
+        y
+      )
+    )
+    (append L '(nil))
+  )
+)
+
+(defun if_valido_lambda (&rest argumentos)
+  (if (todos 'es_valido (sin_ultimo argumentos))
+    (apply (ultimo argumentos) (sin_ultimo argumentos))
+    (primero (lambda (x) (not (es_valido x))) (sin_ultimo argumentos))
+  )
+)
+
 (defun exc (mensaje)
-  (print mensaje)
-  (exit)
+  (list 'excepcion mensaje)
 )
 
 (defun es_operador (a)
   (pertenece a '(+ - * / % < > <= >= && || ^^ ==))
 )
 
-(defun buscar_en_memoria (k memoria)
+(defun buscar_en_memoria* (k memoria)
   (cond
     ( (eq (car memoria) k) (cadr memoria) )
     ( 
       (null memoria) 
       (exc (list "Una variable no se encuentra en el ambiente" k))
     )
-    ( T (buscar_en_memoria k (cdr memoria)) )
+    ( T (buscar_en_memoria* k (cdr memoria)) )
   )
 )
 
 (defun reemplazar_nil_por_cero (x) (if (null x) 0 x) )
 
-(defun operar (op izq der)
+(defun operar* (op izq der)
   (reemplazar_nil_por_cero (cond
     ((eq op '+) (+ izq der))
     ((eq op '-) (- izq der))
@@ -39,14 +77,14 @@
   ))
 )
 
-(defun valor (expresion memoria &optional (operadores nil) (operandos nil))
+(defun valor* (expresion memoria &optional (operadores nil) (operandos nil))
   (cond
     (
       (and (atom expresion) (not (null expresion)))
       (cond 
         ((numberp expresion) expresion)
         ((stringp expresion) expresion)
-        (T (buscar_en_memoria expresion memoria))
+        (T (buscar_en_memoria* expresion memoria))
       )
     )
     (
@@ -55,19 +93,23 @@
     )
     (
       (and (null expresion) (not (null operadores)))
-      (valor
-        expresion
-        memoria
-        (cdr operadores)
-        (cons 
-          (operar (car operadores) (cadr operandos) (car operandos)) 
-          (cddr operandos)
+      (if_valido_lambda (operar* (car operadores) (cadr operandos) (car operandos))
+        (lambda (resultado_operacion)
+          (valor*
+            expresion
+            memoria
+            (cdr operadores)
+            (cons 
+              resultado_operacion      
+              (cddr operandos)
+            )
+          )
         )
       )
     )
     (
       (and (es_operador (car expresion)) (null operadores))
-      (valor 
+      (valor*
         (cdr expresion) 
         memoria 
         (cons (car expresion) operadores) 
@@ -77,13 +119,13 @@
     (
       (and (es_operador (car expresion)) (not (null operadores)) )
       (if (< (peso (car operadores)) (peso (car expresion)) )
-        (valor 
+        (valor*
           (cdr expresion) 
           memoria 
           (cons (car expresion) operadores) 
           operandos
         )
-        (valor
+        (valor*
           expresion
           memoria
           (cdr operadores)
@@ -93,11 +135,15 @@
     )
     (
       (or (numberp (car expresion)) (symbolp (car expresion)))
-      (valor
-        (cdr expresion)
-        memoria
-        operadores
-        (cons (valor (car expresion) memoria) operandos)
+      (if_valido_lambda (valor* (car expresion) memoria)
+        (lambda (v) 
+          (valor*
+            (cdr expresion)
+            memoria
+            operadores
+            (cons v operandos)
+          )
+        )
       )
     )
 
@@ -110,26 +156,34 @@
 )
 
 
-(defun modificar_flujo (instruccion cola_programa entrada memoria salida)
+(defun modificar_flujo* (instruccion cola_programa entrada memoria salida)
   (cond
     (
       (es_if  instruccion)
-      (if (not (eq (valor (cadr instruccion) memoria) 0 ))
-        (append (caddr instruccion) cola_programa)
-        (if (es_if_con_else instruccion)
-          (append (car (cddddr instruccion)) cola_programa)
-          cola_programa
+      (if_valido_lambda (valor* (cadr instruccion) memoria)
+        (lambda (valor)
+          (if (not (eq valor 0 ))
+            (append (caddr instruccion) cola_programa)
+            (if (es_if_con_else instruccion)
+              (append (car (cddddr instruccion)) cola_programa)
+              cola_programa
+            )
+          )
         )
       )
     )
     (
       (es_while instruccion)
-      (if (not (eq (valor (cadr instruccion) memoria) 0 ))
-        (append
-          (caddr instruccion)
-          (cons instruccion cola_programa)
+      (if_valido_lambda (valor* (cadr instruccion) memoria)
+        (lambda (valor)
+          (if (not (eq valor 0 ))
+            (append
+              (caddr instruccion)
+              (cons instruccion cola_programa)
+            )
+            cola_programa
+          )
         )
-        cola_programa
       )
     )
     (
@@ -139,7 +193,7 @@
   )
 )
 
-(defun modificar_memoria (instruccion entrada memoria salida)
+(defun modificar_memoria* (instruccion entrada memoria salida)
   (cond
     (
       (es_scanf instruccion)
@@ -147,39 +201,51 @@
     )
     (
       (es_asignacion instruccion)
-      (asignar (car instruccion) (valor (cddr instruccion) memoria) memoria)
+      (if_valido_lambda (valor* (cddr instruccion) memoria)
+        (lambda (valor)
+          (asignar (car instruccion) valor memoria)  
+        )
+      )
     )
     (
       (es_asignacion_operacion instruccion)
-      (modificar_memoria
-        (list 
-          (car instruccion) 
-          '= 
-          (car instruccion) 
-          (operacion_de (cadr instruccion))
-          (if (es_postfijo (cadr instruccion))
-            1
-            (valor (cddr instruccion) memoria)
+      (if_valido_lambda (valor* (cddr instruccion) memoria) (operacion_de* (cadr instruccion))
+        (lambda (valor operacion)
+          (modificar_memoria*
+            (list 
+              (car instruccion) 
+              '= 
+              (car instruccion) 
+              operacion
+              (if (es_postfijo (cadr instruccion))
+                1
+                valor
+              )
+            )
+            entrada
+            memoria
+            salida
           )
         )
-        entrada
-        memoria
-        salida
       )
     )
     (
       (es_prefijo instruccion)
-      (modificar_memoria
-        (list 
-          (cadr instruccion) 
-          '= 
-          (cadr instruccion) 
-          (operacion_de (car instruccion))
-          1
+      (if_valido_lambda (operacion_de* (car instruccion))
+        (lambda (operacion)
+          (modificar_memoria*
+            (list 
+              (cadr instruccion) 
+              '= 
+              (cadr instruccion) 
+              operacion
+              1
+            )
+            entrada
+            memoria
+            salida
+          )
         )
-        entrada
-        memoria
-        salida
       )
     )
     (
@@ -188,11 +254,13 @@
     )
   )
 )
-(defun modificar_salida (instruccion entrada memoria salida) 
+(defun modificar_salida* (instruccion entrada memoria salida) 
   (cond
-    ( 
+    (
       (es_printf instruccion)
-      (cons (valor (cadr instruccion) memoria) salida)
+      (if_valido_lambda (valor* (cadr instruccion) memoria)
+        (lambda (valor) (cons valor salida))
+      )
     )
     (T salida)
   )
@@ -213,7 +281,7 @@
 (defun es_asignacion_operacion (instruccion) 
   (pertenece (cadr instruccion) '(+= -= *= /= %= ++ --))
 )
-(defun operacion_de (eqop) 
+(defun operacion_de* (eqop) 
   (cond
     ((eq eqop '+=) '+)
     ((eq eqop '-=) '-)
@@ -260,16 +328,23 @@
     (es_while instruccion)
   )
 )
-(defun ejec (prg ent mem &optional (sal nil))
+(defun ejec* (prg ent mem &optional (sal nil))
   (cond
     ( (null prg) (reverse sal) )
     (
       (es_funcion_conocida (car prg))
-      (ejec
-        (modificar_flujo (car prg) (cdr prg) ent mem sal)
-        (modificar_entrada (car prg) ent mem sal)
-        (modificar_memoria (car prg) ent mem sal)
-        (modificar_salida  (car prg) ent mem sal)
+      (if_valido_lambda 
+        (modificar_flujo* (car prg) (cdr prg) ent mem sal) 
+        (modificar_memoria* (car prg) ent mem sal)
+        (modificar_salida*  (car prg) ent mem sal)
+        (lambda (programa_nuevo memoria_nueva salida_nueva)
+          (ejec*
+            programa_nuevo
+            (modificar_entrada (car prg) ent mem sal)
+            memoria_nueva
+            salida_nueva
+          )
+        )
       )
     )
     (
@@ -299,11 +374,11 @@
   )
 )
 ; ---- ejecuta  instrucciones de tipo INT ------ ;
-(defun asignar_declaracion_variables (instruccion memoria)
+(defun asignar_declaracion_variables* (instruccion memoria)
   (cond
     (
       (eq (car instruccion) 'int) 
-      (asignar_declaracion_variables (cdr instruccion) memoria)
+      (asignar_declaracion_variables* (cdr instruccion) memoria)
     )
     ((null instruccion) memoria)
     (
@@ -312,7 +387,7 @@
 	      (eq (cadr instruccion) '=)
 	      (not (symbolp (caddr instruccion)))
       )
-      (asignar_declaracion_variables
+      (asignar_declaracion_variables*
         (cdddr instruccion)
         (asignar (car instruccion) (caddr instruccion) memoria)
       )
@@ -322,7 +397,7 @@
 	      (symbolp (car instruccion)) 
 	      (symbolp (cadr instruccion)) 
       )
-      (asignar_declaracion_variables
+      (asignar_declaracion_variables*
         (cdr instruccion)
         (asignar (car instruccion) 0 memoria)
       )
@@ -334,24 +409,32 @@
   )
 )
 ; -------------------------------- PRINCIPAL --------------------- ;
-(defun run (prg ent &optional (mem nil))
+(defun run* (prg ent &optional (mem nil))
   (cond
     ((null prg) (exc "no hay programa"))
     (
       (eq (caar prg) 'int)
-      (run 
-        (cdr prg) 
-        ent 
-        (asignar_declaracion_variables (car prg) mem)
+      (if_valido_lambda (asignar_declaracion_variables* (car prg) mem)
+        (lambda (mem_inicial)
+          (run*
+            (cdr prg) 
+            ent 
+            mem_inicial
+          )
+        )
       )
     )
     (
       (eq (caar prg) 'main)
-      (ejec (cadar prg) ent mem)
+      (ejec* (cadar prg) ent mem)
     )
     (
       T
       (exc "El programa no empieza con main ni int")
     )
   )
+)
+
+(defun run (prg ent &optional (mem nil))
+  (run* prg ent mem)
 )
