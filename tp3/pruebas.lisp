@@ -142,3 +142,66 @@
   )
   '(excepcion ("Una variable no se encuentra en el ambiente" Q))
 )
+
+(test (run '(
+    (int x)
+    (int z A = 10)
+    (main (
+      (z1 = A + 1)
+      (printf A)
+      (scanf xa)
+      (if (a < X) (
+        (z += A)
+      ) else (
+        (z = 1)
+      ))
+      (while (x < 10) (
+        (printf x)
+        (x ++)
+      ))
+    ))
+  ) '(2))
+  '(excepcion ("Una variable no se encuentra en el ambiente" z1))  
+)
+
+(test (run '(
+    (int x)
+    (int z A = 10)
+    (main (
+      (printf A)
+      (scanf xa)
+      (if (a < X) (
+        (z += A)
+      ) else (
+        (z = 1)
+      ))
+      (while (x < 10) (
+        (printf x)
+        (x ++)
+      ))
+    ))
+  ) '(2))
+  '(excepcion ("Una variable no se encuentra en el ambiente" xa))  
+)
+
+(test (run '(
+    (int x)
+    (int z A = 10)
+    (main (
+      (z = A + 1)
+      (printf A)
+      (scanf x)
+      (if (a < X) (
+        (z += A)
+      ) else (
+        (z = 1)
+      ))
+      (while (x < 10) (
+        (printf x)
+        (x2 = x + 1)
+      ))
+    ))
+  ) '(2))
+
+  '(excepcion ("Una variable no se encuentra en el ambiente" x2))
+)

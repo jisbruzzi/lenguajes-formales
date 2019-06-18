@@ -197,13 +197,13 @@
   (cond
     (
       (es_scanf instruccion)
-      (asignar (cadr instruccion) (car entrada)  memoria)
+      (reasignar* (cadr instruccion) (car entrada)  memoria)
     )
     (
       (es_asignacion instruccion)
       (if_valido_lambda (valor* (cddr instruccion) memoria)
         (lambda (valor)
-          (asignar (car instruccion) valor memoria)  
+          (reasignar* (car instruccion) valor memoria)  
         )
       )
     )
@@ -354,7 +354,14 @@
   )
 )
 
-(defun asignar (k v memoria)
+(defun reasignar* (k v memoria)
+  (if_valido_lambda (buscar_en_memoria* k memoria)
+    (lambda (valor_inicial)
+      (asignar* k v memoria)
+    )
+  )
+)
+(defun asignar* (k v memoria)
   (cond
     (
       (eq (car memoria) k)
@@ -366,9 +373,10 @@
     )
     (
       T
-      (append 
-        (list (car memoria) (cadr memoria)) 
-        (asignar k v (cddr memoria))
+      (if_valido_lambda (asignar* k v (cddr memoria))
+        (lambda (m)
+          (append (list (car memoria) (cadr memoria)) m)
+        )
       )
     )
   )
@@ -387,9 +395,18 @@
 	      (eq (cadr instruccion) '=)
 	      (not (symbolp (caddr instruccion)))
       )
-      (asignar_declaracion_variables*
-        (cdddr instruccion)
-        (asignar (car instruccion) (caddr instruccion) memoria)
+      (if_valido_lambda 
+        (asignar* 
+          (car instruccion) 
+          (caddr instruccion) 
+          memoria
+        )
+        (lambda (mem)
+          (asignar_declaracion_variables*
+            (cdddr instruccion)
+            mem
+          )
+        )
       )
     )
     (
@@ -397,9 +414,13 @@
 	      (symbolp (car instruccion)) 
 	      (symbolp (cadr instruccion)) 
       )
-      (asignar_declaracion_variables*
-        (cdr instruccion)
-        (asignar (car instruccion) 0 memoria)
+      (if_valido_lambda (asignar* (car instruccion) 0 memoria)
+        (lambda (mem)
+          (asignar_declaracion_variables*
+            (cdr instruccion)
+            mem
+          )
+        )
       )
     )
     (
