@@ -77,14 +77,40 @@
   ))
 )
 
-(defun valor* (expresion memoria &optional (operadores nil) (operandos nil))
+(defun peso (op)
+  (cond
+  ((pertenece op '(< > <= >= ==)) 1)
+    ((pertenece op '(+ -)) 2)
+    ((pertenece op '(* / %)) 3)
+    ((pertenece op '(&& || ^^)) 4)
+  )
+
+)
+
+(defun valor* (expresion memoria constantes &optional (operadores nil) (operandos nil))
+  ;(print 'vvvvvvvvvvvvvv)
+  ;(print expresion)
+  ;(print memoria)
+  ;(print constantes)
+  ;(print operadores)
+  ;(print operandos)
   (cond
     (
       (and (atom expresion) (not (null expresion)))
       (cond 
         ((numberp expresion) expresion)
         ((stringp expresion) expresion)
-        (T (buscar_en_memoria* expresion memoria))
+        (
+          (es_valido (buscar_en_memoria* expresion memoria))
+          (buscar_en_memoria* expresion memoria)
+        )
+        (
+          (es_valido (buscar_en_memoria* expresion constantes))
+          (buscar_en_memoria* expresion constantes)
+        )
+        (
+          T (exc (list "No se conoce el valor de" expresion))
+        )
       )
     )
     (
@@ -98,6 +124,7 @@
           (valor*
             expresion
             memoria
+            constantes
             (cdr operadores)
             (cons 
               resultado_operacion      
@@ -112,6 +139,7 @@
       (valor*
         (cdr expresion) 
         memoria 
+        constantes
         (cons (car expresion) operadores) 
         operandos 
       )
@@ -122,24 +150,31 @@
         (valor*
           (cdr expresion) 
           memoria 
+          constantes
           (cons (car expresion) operadores) 
           operandos
         )
         (valor*
           expresion
           memoria
+          constantes
           (cdr operadores)
-          operandos
+          (cons 
+            (operar* (car operadores) (cadr operandos) (car operandos))
+            (cddr operandos)
+          )
         )
       )
     )
     (
       (or (numberp (car expresion)) (symbolp (car expresion)))
-      (if_valido_lambda (valor* (car expresion) memoria)
+      (if_valido_lambda 
+        (valor* (car expresion) memoria constantes)
         (lambda (v) 
           (valor*
             (cdr expresion)
             memoria
+            constantes
             operadores
             (cons v operandos)
           )
@@ -156,11 +191,12 @@
 )
 
 
-(defun modificar_flujo* (instruccion cola_programa entrada memoria salida)
+(defun modificar_flujo* (instruccion cola_programa entrada memoria salida constantes)
   (cond
     (
       (es_if  instruccion)
-      (if_valido_lambda (valor* (cadr instruccion) memoria)
+      (if_valido_lambda 
+        (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
           (if (not (eq valor 0 ))
             (append (caddr instruccion) cola_programa)
@@ -174,7 +210,8 @@
     )
     (
       (es_while instruccion)
-      (if_valido_lambda (valor* (cadr instruccion) memoria)
+      (if_valido_lambda 
+        (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
           (if (not (eq valor 0 ))
             (append
@@ -193,23 +230,26 @@
   )
 )
 
-(defun modificar_memoria* (instruccion entrada memoria salida)
+(defun modificar_memoria* (instruccion entrada memoria salida constantes)
   (cond
     (
       (es_scanf instruccion)
-      (reasignar* (cadr instruccion) (car entrada)  memoria)
+      (reasignar* (cadr instruccion) (car entrada)  constantes memoria)
     )
     (
       (es_asignacion instruccion)
-      (if_valido_lambda (valor* (cddr instruccion) memoria)
+      (if_valido_lambda 
+        (valor* (cddr instruccion) memoria constantes)
         (lambda (valor)
-          (reasignar* (car instruccion) valor memoria)  
+          (reasignar* (car instruccion) valor constantes memoria)  
         )
       )
     )
     (
       (es_asignacion_operacion instruccion)
-      (if_valido_lambda (valor* (cddr instruccion) memoria) (operacion_de* (cadr instruccion))
+      (if_valido_lambda 
+        (valor* (cddr instruccion) memoria constantes)
+        (operacion_de* (cadr instruccion))
         (lambda (valor operacion)
           (modificar_memoria*
             (list 
@@ -225,6 +265,7 @@
             entrada
             memoria
             salida
+            constantes
           )
         )
       )
@@ -254,18 +295,19 @@
     )
   )
 )
-(defun modificar_salida* (instruccion entrada memoria salida) 
+(defun modificar_salida* (instruccion entrada memoria salida constantes) 
   (cond
     (
       (es_printf instruccion)
-      (if_valido_lambda (valor* (cadr instruccion) memoria)
+      (if_valido_lambda 
+        (valor* (cadr instruccion) memoria constantes)
         (lambda (valor) (cons valor salida))
       )
     )
     (T salida)
   )
 )
-(defun modificar_entrada (instruccion entrada memoria salida) 
+(defun modificar_entrada (instruccion entrada memoria salida constantes) 
   (cond
     ( 
       (es_scanf instruccion)
@@ -328,20 +370,21 @@
     (es_while instruccion)
   )
 )
-(defun ejec* (prg ent mem &optional (sal nil))
+(defun ejec* (prg ent mem const &optional (sal nil))
   (cond
     ( (null prg) (reverse sal) )
     (
       (es_funcion_conocida (car prg))
       (if_valido_lambda 
-        (modificar_flujo* (car prg) (cdr prg) ent mem sal) 
-        (modificar_memoria* (car prg) ent mem sal)
-        (modificar_salida*  (car prg) ent mem sal)
+        (modificar_flujo* (car prg) (cdr prg) ent mem sal const)
+        (modificar_memoria* (car prg) ent mem sal const)
+        (modificar_salida*  (car prg) ent mem sal const)
         (lambda (programa_nuevo memoria_nueva salida_nueva)
           (ejec*
             programa_nuevo
-            (modificar_entrada (car prg) ent mem sal)
+            (modificar_entrada (car prg) ent mem sal const)
             memoria_nueva
+            const
             salida_nueva
           )
         )
@@ -354,10 +397,13 @@
   )
 )
 
-(defun reasignar* (k v memoria)
-  (if_valido_lambda (buscar_en_memoria* k memoria)
-    (lambda (valor_inicial)
-      (asignar* k v memoria)
+(defun reasignar* (k v constantes memoria)
+  (if (es_valido (buscar_en_memoria* k constantes))
+    (exc (list k "corresponde a una constante, no se puede reasignar"))
+    (if_valido_lambda (buscar_en_memoria* k memoria)
+      (lambda (valor_inicial)
+        (asignar* k v memoria)
+      )
     )
   )
 )
@@ -379,6 +425,13 @@
         )
       )
     )
+  )
+)
+; ---- ejecuta  instrucciones de tipo define ------ ;
+(defun asignar_declaracion_constantes* (instruccion constantes)
+  (if (eq (car instruccion) 'define)
+    (asignar* (cadr instruccion) (caddr instruccion) constantes)
+    (exc "define mal construido")
   )
 )
 ; ---- ejecuta  instrucciones de tipo INT ------ ;
@@ -430,7 +483,7 @@
   )
 )
 ; -------------------------------- PRINCIPAL --------------------- ;
-(defun run* (prg ent &optional (mem nil))
+(defun run* (prg ent &optional (mem nil) (const nil))
   (cond
     ((null prg) (exc "no hay programa"))
     (
@@ -441,13 +494,28 @@
             (cdr prg) 
             ent 
             mem_inicial
+            const
+          )
+        )
+      )
+    )
+    (
+      (eq (caar prg) 'define)
+      (if_valido_lambda 
+        (asignar_declaracion_constantes* (car prg) const)
+        (lambda (const_inicial)
+          (run*
+            (cdr prg)
+            ent
+            mem
+            const_inicial
           )
         )
       )
     )
     (
       (eq (caar prg) 'main)
-      (ejec* (cadar prg) ent mem)
+      (ejec* (cadar prg) ent mem const)
     )
     (
       T

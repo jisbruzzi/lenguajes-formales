@@ -7,6 +7,19 @@
   )
 )
 
+
+(test (valor* '(1 - 2 * 2) nil nil)  -3)
+(test (valor* '(4 < 5) nil nil)  T)
+(test (valor* '(N < 5) '(N 4) nil)  T)
+(test (valor* '(4 == 4) nil nil)  T)
+(test (valor* '(N == 4) '(N 4) nil)  T)
+(test (valor* '(5 < 4) nil nil)  0)
+(test (valor* '(5 < N) '(N 4) nil)  0)
+(test (valor* '(5 < N) nil '(N 4))  0)
+(test (valor* '(x + n - 1 < 10) '(x 1) '(N 1))  T)
+
+
+
 (test
   (run '(
     (int x)
@@ -29,12 +42,7 @@
   '(10 2 3 4 5 6 7 8 9)
 )
 
-(test (valor* '(4 < 5) nil)  T)
-(test (valor* '(N < 5) '(N 4))  T)
-(test (valor* '(4 == 4) nil)  T)
-(test (valor* '(N == 4) '(N 4))  T)
-(test (valor* '(5 < 4) nil)  0)
-(test (valor* '(5 < N) '(N 4))  0)
+
 
 
 
@@ -140,7 +148,7 @@
     )
     '(5)
   )
-  '(excepcion ("Una variable no se encuentra en el ambiente" Q))
+  '(excepcion ("No se conoce el valor de" Q))
 )
 
 (test (run '(
@@ -204,4 +212,46 @@
   ) '(2))
 
   '(excepcion ("Una variable no se encuentra en el ambiente" x2))
+)
+
+(test (run '( (define n 1)
+(int x)
+(int z A = 10)
+(main (
+(z = A + n)
+(printf A)
+(scanf x)
+(if (a < X) (
+(z += A)
+) else (
+(z = 1)
+))
+(while (x + n - 1 < 10) (
+(printf x)
+(x = x + n)
+))
+))
+) '(2))
+'(10 2 3 4 5 6 7 8 9)
+)
+
+(test (run '( (define n 1)
+(int x)
+(int z A = 10)
+(main (
+(n = A + 1)
+(printf A)
+(scanf x)
+(if (a < X) (
+(z += A)
+) else (
+(z = 1)
+))
+(while (x < 10) (
+(printf x)
+(x = x + 1)
+))
+))
+) '(2))
+'(excepcion (N "corresponde a una constante, no se puede reasignar"))
 )
