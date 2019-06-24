@@ -255,3 +255,45 @@
 ) '(2))
 '(excepcion (N "corresponde a una constante, no se puede reasignar"))
 )
+
+(test (run '( (define n 1)
+(int x)
+(int z A = 10)
+(main (
+(z = A + 1)
+(printf A)
+(scanf n)
+(if (a < X) (
+(z += A)
+) else (
+(z = 1)
+))
+(while (x < 10) (
+(printf x)
+(x = x + 1)
+))
+))
+) '(2))
+'(excepcion (N "corresponde a una constante, no se puede reasignar"))
+)
+
+(test (run '( (define n 1)
+(int x)
+(int z A = 10)
+(main (
+(z = A + n)
+(printf A)
+(scanf x)
+(if (a < X) (
+(z += A)
+) else (
+(z = 1)
+))
+(while (x + n - 1 < 10) (
+(printf n)
+(x = x + n)
+))
+))
+) '(2))
+'(10 1 1 1 1 1 1 1 1)
+)
