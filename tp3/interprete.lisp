@@ -190,11 +190,68 @@
   )
 )
 
+(defun mapcar* (f L)
+  (if (null L) nil
+    (if_valido_lambda (funcall f (car L))
+      (lambda (cabeza)
+        (if_valido_lambda (mapcar* f (cdr L))
+          (lambda (cola)
+            (cons cabeza cola)
+          )
+        )
+      )
+    )
+  )
+)
+(defun valores* (expresiones memoria constantes)
+  (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
+)
+
+(defun hay_algun_1 (valores)
+  (if (null valores) nil
+    (if (or (eq (car valores) 1)(eq (car valores) T))
+      T
+      (hay_algun_1 (cdr valores))
+    )
+  )
+)
+
+(defun range (n)
+  (if (= n 0)
+    (list 0)
+    (reverse (cons n (reverse (range (- n 1)))))
+  )
+)
+
+(defun filtrar (f L)
+  (if (null L) nil
+    (if (funcall f (car L))
+      (cons (car L) (filtrar f (cdr L)))
+      (filtrar f (cdr L))
+    )
+  )
+)
+
+(setf *random-state* (make-random-state t))
+
+(defun cualquiera (L)
+  (nth (random (length L)) L)
+)
+
+(defun indice_cualquiera_1 (valores)
+  (cualquiera (mapcar
+    (lambda (v) (cadr v))
+    (filtrar 
+      (lambda (v) (or (eq (car v) T) (eq (car v) 1)))
+      (mapcar 'list  valores (range (- (length valores) 1)))
+    )
+  ))
+)
 
 (defun modificar_flujo* (instruccion cola_programa entrada memoria salida constantes)
   (cond
     (
-      (es_if  instruccion)
+      (es_if_deterministico  instruccion)
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
@@ -209,13 +266,51 @@
       )
     )
     (
+      (es_if_no_deterministico instruccion)
+      (if_valido_lambda
+        (valores* (cadr instruccion) memoria constantes)
+        (lambda (valores)
+          (if (hay_algun_1 valores)
+            (append
+              (nth 
+                (indice_cualquiera_1 valores) 
+                (caddr instruccion)
+              ) 
+              cola_programa
+            )
+            cola_programa
+          )
+        )
+      )
+    )
+    (
       (es_while instruccion)
+      
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
           (if (not (eq valor 0 ))
             (append
               (caddr instruccion)
+              (cons instruccion cola_programa)
+            )
+            cola_programa
+          )
+        )
+      )
+    )
+    (
+      (es_while_no_deterministico instruccion)
+
+      (if_valido_lambda
+        (valores* (cadr instruccion) memoria constantes)
+        (lambda (valores)
+          (if (hay_algun_1 valores)
+            (append
+              (nth 
+                (indice_cualquiera_1 valores) 
+                (caddr instruccion)
+              ) 
               (cons instruccion cola_programa)
             )
             cola_programa
@@ -341,14 +436,49 @@
 (defun es_prefijo (instruccion) 
   (pertenece (car instruccion) '(++ --))
 )
-(defun es_if (instruccion) 
-  (eq (car instruccion) 'if)
+
+(defun es_lista_de_listas (l) (todos 'listp l))
+
+
+
+(defun es_no_deterministico (instruccion)
+  (and
+    (todos 'listp (cadr instruccion))
+    (todos 'es_lista_de_listas (caddr instruccion))
+    (=
+      (length (cadr instruccion))
+      (length (caddr instruccion))
+    )
+  )
+)
+
+(defun es_if_deterministico (instruccion) 
+  (and 
+    (eq (car instruccion) 'if)
+    (not (es_no_deterministico instruccion))
+  )
+)
+
+(defun es_if_no_deterministico (instruccion) 
+  (and 
+    (eq (car instruccion) 'if)
+    (es_no_deterministico instruccion)
+  )
+)
+(defun es_while_no_deterministico (instruccion)
+  (and 
+    (eq (car instruccion) 'while)
+    (es_no_deterministico instruccion)
+  )
 )
 (defun es_if_con_else (instruccion) 
   (eq (car (cdddr instruccion)) 'else)
 )
 (defun es_while (instruccion) 
-  (eq (car instruccion) 'while)
+  (and
+    (eq (car instruccion) 'while)
+    (not (es_no_deterministico instruccion))
+  )
 )
 
 (defun pertenece (v conjunto)
@@ -366,8 +496,10 @@
     (es_asignacion instruccion)
     (es_asignacion_operacion instruccion)
     (es_prefijo instruccion)
-    (es_if instruccion)
+    (es_if_deterministico instruccion)
+    (es_if_no_deterministico instruccion)
     (es_while instruccion)
+    (es_while_no_deterministico instruccion)
   )
 )
 (defun ejec* (prg ent mem const &optional (sal nil))

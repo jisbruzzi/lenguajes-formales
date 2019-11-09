@@ -7,6 +7,35 @@
   )
 )
 
+(defun alguno_igual (e L)
+  (if (null L)
+    nil
+    (if (equal e (car L))
+      T
+      (alguno_igual e (cdr L))
+    )
+  )
+)
+
+(defun test_muchas_veces (gen_elemento resultados_posibles veces_restantes)
+  (if (eq veces_restantes 0)
+    T
+    (if (alguno_igual (funcall gen_elemento) resultados_posibles)
+      (test_muchas_veces 
+        gen_elemento 
+        resultados_posibles 
+        (- veces_restantes 1)
+      )
+      nil
+    )
+  )
+)
+(defun test_no_determinista (gen_elemento resultados_posibles)
+  (if (test_muchas_veces gen_elemento resultados_posibles 100)
+    (print "ok")
+    (print (list "error: un resultado es distinto de " resultados_posibles))
+  )
+)
 
 (test (valor* '(1 - 2 * 2) nil nil)  -3)
 (test (valor* '(4 < 5) nil nil)  T)
@@ -296,4 +325,56 @@
 ))
 ) '(2))
 '(10 1 1 1 1 1 1 1 1)
+)
+
+(test (run '( (define n 1)
+(int x)
+(int z A = 10)
+(main (
+  (z = A + n)
+  (printf A)
+  (scanf x)
+  (if (a < X) (
+    (z += A)
+  ) else (
+    (z = 1)
+  ))
+  (while (x + n - 1 < 10) (
+    (printf n)
+    (x = x + n)
+  ))
+))
+) '(2))
+'(10 1 1 1 1 1 1 1 1)
+)
+
+
+(test_no_determinista 
+  (lambda () 
+    (run '(
+    (main (
+      (if ( (1 < 2) (1 < 2) (5 < 2) ) 
+      ( ((printf 2)) ((printf 1)) ((printf 3)) )
+      )
+    ))
+    ) '(2))
+  )
+  '( (1) (2))
+)
+
+
+(test_no_determinista 
+  (lambda () 
+    (run '(
+    (int x = 0)
+    (int y = 0)
+    (main (
+      (while ((x < 2) (y < 2) ) (
+        ((printf x)(x = x + 1))
+        ((printf y)(y = y + 1))
+      ))
+    ))
+    ) '())
+  )
+  '( (0 1 0 1) (0 0 1 1))
 )
