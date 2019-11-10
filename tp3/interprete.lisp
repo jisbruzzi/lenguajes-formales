@@ -145,6 +145,10 @@
       )
     )
     (
+      (es_asignacion expresion)
+      (valor* (cddr expresion) memoria constantes) 
+    )
+    (
       (and (es_operador (car expresion)) (not (null operadores)) )
       (if (< (peso (car operadores)) (peso (car expresion)) )
         (valor*
