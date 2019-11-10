@@ -41,8 +41,6 @@
 
 
 
-
-
 (test (valor* '(1 - 2 * 2) nil nil)  -3)
 (test (valor* '(4 < 5) nil nil)  T)
 (test (valor* '(N < 5) '(N 4) nil)  T)
@@ -405,6 +403,78 @@
 (int z = 10)
 (main (
   (z = (x = z / 2) + 1)
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(6 5)
+)
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (printf z)
+  (if (2 < (z += 1)) (
+    (printf "si")
+  ) else (
+    (printf "no")
+  ))
+  (printf z)
+))
+) '(2))
+'(10 "si" 11)
+)
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (printf z)
+  (while (0 < (z -= 1)) (
+    (printf z)
+  ))
+))
+) '(2))
+'(10 9 8 7 6 5 4 3 2 1)
+)
+
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (printf z)
+  (if (2 < (z -= 1)) (
+    (printf "si")
+  ) else (
+    (printf "no")
+  ))
+  (printf z)
+))
+) '(2))
+'(10 "si" 9)
+)
+
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (x = (z /= 2) + 1)
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(5 6)
+)
+
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z = x + (x = z / 2) )
   (printf z)
   (printf x)
 ))

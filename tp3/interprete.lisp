@@ -177,7 +177,27 @@
       )
     )
     (
-      (or (es_asignacion expresion) (es_asignacion_operacion expresion))
+      (es_asignacion_operacion expresion)
+      (if_valido_lambda (operacion_de* (cadr expresion))
+        (lambda (operacion)
+          (valor* 
+            (append
+              (list 
+                (car expresion) 
+                '=
+                (car expresion) 
+                operacion
+              )
+              (cddr expresion)
+            )
+            memoria 
+            constantes
+          )
+        )
+      )
+    )
+    (
+      (es_asignacion expresion)
       
       (if_valido_lambda (valor* (cddr expresion) memoria constantes) 
         (lambda (valor)
@@ -456,6 +476,15 @@
             memoria
             salida
           )
+        )
+      )
+    )
+    (
+      (or (es_if_deterministico  instruccion) (es_while instruccion))
+      (if_valido_lambda 
+        (valor* (cadr instruccion) memoria constantes)
+        (lambda (valor)
+          (memoria_de valor memoria)
         )
       )
     )
