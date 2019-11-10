@@ -183,6 +183,16 @@
     )
 
     (
+      (listp (car expresion))
+      (if_valido_lambda 
+        (valor* (car expresion) memoria constantes)
+        (lambda (valor)
+          (valor* (cons valor (cdr expresion)) memoria constantes)
+        )
+      )
+    )
+
+    (
       T
       (exc (list "No es una expresión cuyo valor sepa calcular." expresion))
     )
