@@ -87,6 +87,38 @@
 
 )
 
+(defun valor_de (v)
+  (if 
+    (es_valor_con_memoria v)
+    
+    (nth 1 v)
+    v
+  )
+)
+
+(defun con_memoria (valor memoria)
+  (list 'valor_con_memoria valor memoria)
+)
+
+(defun memoria_de (valor alternativa)
+  
+  (if (es_valor_con_memoria valor)
+    (nth 2 valor)  
+    alternativa
+  )
+)
+
+(defun es_valor_con_memoria (v)
+  (and 
+      (listp v)
+      (eq 'valor_con_memoria (car v))
+    )
+)
+
+(defun fusionar_memorias (original nueva)
+  nueva
+)
+
 (defun valor* (expresion memoria constantes &optional (operadores nil) (operandos nil))
   ;(print 'vvvvvvvvvvvvvv)
   ;(print expresion)
@@ -145,8 +177,23 @@
       )
     )
     (
-      (es_asignacion expresion)
-      (valor* (cddr expresion) memoria constantes) 
+      (or (es_asignacion expresion) (es_asignacion_operacion expresion))
+      
+      (if_valido_lambda (valor* (cddr expresion) memoria constantes) 
+        (lambda (valor)
+          (con_memoria 
+            (valor_de valor)
+            (modificar_memoria* 
+              (list (car expresion) (cadr expresion) (valor_de valor))
+              '();NO LEO STDIN
+              memoria 
+              '();NO HAGO OUTPUT
+              constantes
+            )
+          )
+        )
+      )
+      
     )
     (
       (and (es_operador (car expresion)) (not (null operadores)) )
@@ -187,11 +234,17 @@
     )
 
     (
-      (listp (car expresion))
+      (and 
+        (listp (car expresion)) 
+        (not (es_valor_con_memoria (car expresion)))
+      )
       (if_valido_lambda 
         (valor* (car expresion) memoria constantes)
         (lambda (valor)
-          (valor* (cons valor (cdr expresion)) memoria constantes)
+          (con_memoria
+            (valor* (cons (valor_de valor) (cdr expresion)) memoria constantes)
+            (memoria_de valor memoria)
+          )
         )
       )
     )
@@ -218,7 +271,10 @@
   )
 )
 (defun valores* (expresiones memoria constantes)
-  (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
+  (if_valido_lambda 
+    (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
+    'valor_de
+  )
 )
 
 (defun hay_algun_1 (valores)
@@ -269,7 +325,7 @@
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
-          (if (not (eq valor 0 ))
+          (if (not (eq (valor_de valor) 0 ))
             (append (caddr instruccion) cola_programa)
             (if (es_if_con_else instruccion)
               (append (car (cddddr instruccion)) cola_programa)
@@ -303,7 +359,7 @@
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
-          (if (not (eq valor 0 ))
+          (if (not (eq (valor_de valor) 0 ))
             (append
               (caddr instruccion)
               (cons instruccion cola_programa)
@@ -350,7 +406,12 @@
       (if_valido_lambda 
         (valor* (cddr instruccion) memoria constantes)
         (lambda (valor)
-          (reasignar* (car instruccion) valor constantes memoria)  
+          (reasignar* 
+            (car instruccion) 
+            (valor_de valor) 
+            constantes 
+            (memoria_de valor memoria)
+          )  
         )
       )
     )
@@ -368,11 +429,11 @@
               operacion
               (if (es_postfijo (cadr instruccion))
                 1
-                valor
+                (valor_de valor)
               )
             )
             entrada
-            memoria
+            (memoria_de valor memoria)
             salida
             constantes
           )
@@ -410,7 +471,7 @@
       (es_printf instruccion)
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
-        (lambda (valor) (cons valor salida))
+        (lambda (valor) (cons (valor_de valor) salida))
       )
     )
     (T salida)

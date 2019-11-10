@@ -37,6 +37,12 @@
   )
 )
 
+
+
+
+
+
+
 (test (valor* '(1 - 2 * 2) nil nil)  -3)
 (test (valor* '(4 < 5) nil nil)  T)
 (test (valor* '(N < 5) '(N 4) nil)  T)
@@ -390,6 +396,9 @@
 ) '(2))
 '(6)
 )
+
+
+
 
 (test (run '(
 (int x)
