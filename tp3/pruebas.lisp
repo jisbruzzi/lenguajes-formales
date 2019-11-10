@@ -378,3 +378,27 @@
   )
   '( (0 1 0 1) (0 0 1 1))
 )
+
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (z = (z / 2) + 1)
+  (printf z)
+))
+) '(2))
+'(6)
+)
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (z = (x = z / 2) + 1)
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(6 5)
+)
