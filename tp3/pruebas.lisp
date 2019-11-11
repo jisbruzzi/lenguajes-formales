@@ -488,3 +488,72 @@
   )
   '( (0 1 0 1) (0 0 1 1))
 )
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  x + (x = z / 2))
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(6 5); javascript
+)
+
+
+(test (run '(
+(int x = 0)
+(int z = 10)
+(main (
+  (printf z)
+  (if (12 < (z = x + (x = z / 2))) (
+    (printf "si")
+  ) else (
+    (printf "no")
+  ))
+  (printf z)
+))
+) '(2))
+'(10 "no" 5); javascript
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  x + (x = z / 5 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(5 4); javascript
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(11 8); javascript
+)
+
+
+(test (run '(
+(int x = 3)
+(int z = 10)
+(main (
+  (if ( (x = x * 2) == (x = x + 1) )(
+    (printf "verdadero")
+  )else(
+    (printf "falso")
+  ))
+  (printf x)  
+))
+) '(2))
+'("falso" 7); javascript
+)
