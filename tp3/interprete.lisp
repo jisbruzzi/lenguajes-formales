@@ -119,6 +119,64 @@
   nueva
 )
 
+
+(defun operar_completo* (evaluador op izq der);esto tiene que: ejecutar a izquierda, luego ejecutar a derecha CON LA MEMORIA RESULTADO DE EJECUTAR A IZQUIERDA, luego evaluar a izquierda, luego evaluar a derecha, luego operar
+  
+)
+
+
+(defun valor_algebraico* (expresion evaluador operadores operandos)
+  (funcall (lambda  (evaluar_de_expresion evaluar_de_operadores)
+    (cond
+      (
+        (and (null expresion) (null operadores))
+        (car operandos)
+      )
+      (
+        (and (null expresion) (not (null operadores)))
+        (funcall evaluar_de_operadores)
+      )
+      (
+        (and (es_operador (car expresion)) (null operadores))
+        ;(print "D")
+        (funcall evaluar_de_expresion)
+      )
+      (
+        (and (es_operador (car expresion)) (not (null operadores)) )
+        ;(print "G")
+        (if (< (peso (car operadores)) (peso (car expresion)) )
+          (funcall evaluar_de_expresion)
+          (funcall evaluar_de_operadores)
+        )
+      )
+    )
+  )
+
+  (lambda ();evaluar_de_expresion
+    (valor_algebraico*
+      (cdr expresion) 
+      evaluador
+      (cons (car expresion) operadores) 
+      operandos
+    )
+  )
+  (lambda ();evaluar_de_operadores
+    (if_valido_lambda
+      (operar_completo* evaluador (car operadores) (cadr operandos)  (car operandos))
+      (lambda (resultado_operacion)
+        (valor_algebraico*
+          expresion
+          evaluador
+          (cdr operadores)
+          (cons resultado_operacion (cddr operandos) )
+        )
+      )
+    )
+  )
+  
+  )
+)
+;FALTA REFACTORIZAR LOS CONDS QUE DEJÉ VIVOS
 (defun valor* (expresion memoria constantes &optional (operadores nil) (operandos nil))
   ;(print 'vvvvvvvvvvvvvv)
   ;(print expresion)
@@ -146,48 +204,7 @@
         )
       )
     )
-    (
-      (and (null expresion) (null operadores))
-      ;(print "B")
-      (car operandos)
-    )
-    (
-      (and (null expresion) (not (null operadores)))
-      ;(print "C")
-      (if_valido_lambda 
-        (operar* 
-          (car operadores) 
-          (valor_de (cadr operandos))
-          (valor_de (car  operandos))
-        )
-        (lambda (resultado_operacion)
-          (valor*
-            expresion
-            memoria
-            constantes
-            (cdr operadores)
-            (cons 
-              (con_memoria 
-                resultado_operacion 
-                (memoria_de (car operandos) memoria)
-              )
-              (cddr operandos)
-            )
-          )
-        )
-      )
-    )
-    (
-      (and (es_operador (car expresion)) (null operadores))
-      ;(print "D")
-      (valor*
-        (cdr expresion) 
-        memoria 
-        constantes
-        (cons (car expresion) operadores) 
-        operandos 
-      )
-    )
+    
     (
       (es_asignacion_operacion expresion)
       ;(print "E")
@@ -230,34 +247,7 @@
       )
       
     )
-    (
-      (and (es_operador (car expresion)) (not (null operadores)) )
-      ;(print "G")
-      (if (< (peso (car operadores)) (peso (car expresion)) )
-        (valor*
-          (cdr expresion) 
-          memoria 
-          constantes
-          (cons (car expresion) operadores) 
-          operandos
-        )
-        (if_valido_lambda
-          (operar* (car operadores) (valor_de (cadr operandos)) (valor_de (car operandos)))
-          (lambda (resultado_operacion)
-            (valor*
-              expresion
-              memoria
-              constantes
-              (cdr operadores)
-              (cons 
-                (con_memoria resultado_operacion memoria)
-                (cddr operandos)
-              )
-            )
-          )
-        )
-      )
-    )
+    
     (
       (or (numberp (car expresion)) (symbolp (car expresion)))
       ;(print "H")
