@@ -38,18 +38,15 @@
 )
 
 
-
-
-
-(test (valor* '(1 - 2 * 2) nil nil)  -3)
-(test (valor* '(4 < 5) nil nil)  T)
-(test (valor* '(N < 5) '(N 4) nil)  T)
-(test (valor* '(4 == 4) nil nil)  T)
-(test (valor* '(N == 4) '(N 4) nil)  T)
-(test (valor* '(5 < 4) nil nil)  0)
-(test (valor* '(5 < N) '(N 4) nil)  0)
-(test (valor* '(5 < N) nil '(N 4))  0)
-(test (valor* '(x + n - 1 < 10) '(x 1) '(N 1))  T)
+(test (valor_de (valor* '(1 - 2 * 2) nil nil))  -3)
+(test (valor_de (valor* '(4 < 5) nil nil))  T)
+(test (valor_de (valor* '(N < 5) '(N 4) nil))  T)
+(test (valor_de (valor* '(4 == 4) nil nil))  T)
+(test (valor_de (valor* '(N == 4) '(N 4) nil))  T)
+(test (valor_de (valor* '(5 < 4) nil nil))  0)
+(test (valor_de (valor* '(5 < N) '(N 4) nil))  0)
+(test (valor_de (valor* '(5 < N) nil '(N 4)))  0)
+(test (valor_de (valor* '(x + n - 1 < 10) '(x 1) '(N 1)))  T)
 
 
 
@@ -353,37 +350,6 @@
 )
 
 
-(test_no_determinista 
-  (lambda () 
-    (run '(
-    (main (
-      (if ( (1 < 2) (1 < 2) (5 < 2) ) 
-      ( ((printf 2)) ((printf 1)) ((printf 3)) )
-      )
-    ))
-    ) '(2))
-  )
-  '( (1) (2))
-)
-
-
-(test_no_determinista 
-  (lambda () 
-    (run '(
-    (int x = 0)
-    (int y = 0)
-    (main (
-      (while ((x < 2) (y < 2) ) (
-        ((printf x)(x = x + 1))
-        ((printf y)(y = y + 1))
-      ))
-    ))
-    ) '())
-  )
-  '( (0 1 0 1) (0 0 1 1))
-)
-
-
 (test (run '(
 (int x)
 (int z = 10)
@@ -472,12 +438,53 @@
 
 (test (run '(
 (int x = 1)
-(int z = 10)
+(int z = 0)
 (main (
-  (z = x + (x = z / 2) )
+  (z =  (x = x * 3) + (x = x + 7) + (x = x + 1))
   (printf z)
   (printf x)
 ))
 ) '(2))
-'(6 5)
+'(24 11) ;el resultado de javascript
+)
+
+
+(test 
+  (VALOR* 
+    '(3 + (X = X + 7) + (X = X + 1))
+    '(X 3 Z 0) 
+    'NIL
+  )
+  '(valor_con_memoria 24 (x 11 z 0))
+)
+
+
+(test_no_determinista 
+  (lambda () 
+    (run '(
+    (main (
+      (if ( (1 < 2) (1 < 2) (5 < 2) ) 
+      ( ((printf 2)) ((printf 1)) ((printf 3)) )
+      )
+    ))
+    ) '(2))
+  )
+  '( (1) (2))
+)
+
+
+(test_no_determinista 
+  (lambda () 
+    (run '(
+    (int x = 0)
+    (int y = 0)
+    (main (
+      (while ((x < 2) (y < 2) ) (
+        ((printf x)(x = x + 1))
+        ((printf y)(y = y + 1))
+      ))
+    ))
+    ) '())
+  )
+  '( (0 1 0 1) (0 0 1 1))
 )

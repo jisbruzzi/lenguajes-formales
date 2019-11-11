@@ -129,16 +129,17 @@
   (cond
     (
       (and (atom expresion) (not (null expresion)))
+      ;(print "A")
       (cond 
-        ((numberp expresion) expresion)
-        ((stringp expresion) expresion)
+        ((numberp expresion) (con_memoria expresion memoria) )
+        ((stringp expresion) (con_memoria expresion memoria) )
         (
           (es_valido (buscar_en_memoria* expresion memoria))
-          (buscar_en_memoria* expresion memoria)
+          (con_memoria (buscar_en_memoria* expresion memoria) memoria)
         )
         (
           (es_valido (buscar_en_memoria* expresion constantes))
-          (buscar_en_memoria* expresion constantes)
+          (con_memoria (buscar_en_memoria* expresion constantes) memoria)
         )
         (
           T (exc (list "No se conoce el valor de" expresion))
@@ -147,11 +148,18 @@
     )
     (
       (and (null expresion) (null operadores))
+      ;(print "B")
       (car operandos)
     )
     (
       (and (null expresion) (not (null operadores)))
-      (if_valido_lambda (operar* (car operadores) (cadr operandos) (car operandos))
+      ;(print "C")
+      (if_valido_lambda 
+        (operar* 
+          (car operadores) 
+          (valor_de (cadr operandos))
+          (valor_de (car  operandos))
+        )
         (lambda (resultado_operacion)
           (valor*
             expresion
@@ -159,7 +167,10 @@
             constantes
             (cdr operadores)
             (cons 
-              resultado_operacion      
+              (con_memoria 
+                resultado_operacion 
+                (memoria_de (car operandos) memoria)
+              )
               (cddr operandos)
             )
           )
@@ -168,6 +179,7 @@
     )
     (
       (and (es_operador (car expresion)) (null operadores))
+      ;(print "D")
       (valor*
         (cdr expresion) 
         memoria 
@@ -178,6 +190,7 @@
     )
     (
       (es_asignacion_operacion expresion)
+      ;(print "E")
       (if_valido_lambda (operacion_de* (cadr expresion))
         (lambda (operacion)
           (valor* 
@@ -192,13 +205,15 @@
             )
             memoria 
             constantes
+            operadores
+            operandos
           )
         )
       )
     )
     (
       (es_asignacion expresion)
-      
+      ;(print "F")
       (if_valido_lambda (valor* (cddr expresion) memoria constantes) 
         (lambda (valor)
           (con_memoria 
@@ -217,6 +232,7 @@
     )
     (
       (and (es_operador (car expresion)) (not (null operadores)) )
+      ;(print "G")
       (if (< (peso (car operadores)) (peso (car expresion)) )
         (valor*
           (cdr expresion) 
@@ -225,20 +241,26 @@
           (cons (car expresion) operadores) 
           operandos
         )
-        (valor*
-          expresion
-          memoria
-          constantes
-          (cdr operadores)
-          (cons 
-            (operar* (car operadores) (cadr operandos) (car operandos))
-            (cddr operandos)
+        (if_valido_lambda
+          (operar* (car operadores) (valor_de (cadr operandos)) (valor_de (car operandos)))
+          (lambda (resultado_operacion)
+            (valor*
+              expresion
+              memoria
+              constantes
+              (cdr operadores)
+              (cons 
+                (con_memoria resultado_operacion memoria)
+                (cddr operandos)
+              )
+            )
           )
         )
       )
     )
     (
       (or (numberp (car expresion)) (symbolp (car expresion)))
+      ;(print "H")
       (if_valido_lambda 
         (valor* (car expresion) memoria constantes)
         (lambda (v) 
@@ -258,13 +280,19 @@
         (listp (car expresion)) 
         (not (es_valor_con_memoria (car expresion)))
       )
+      ;(print "I")
       (if_valido_lambda 
-        (valor* (car expresion) memoria constantes)
+        (valor* (car expresion) memoria constantes operadores operandos)
         (lambda (valor)
-          (con_memoria
-            (valor* (cons (valor_de valor) (cdr expresion)) memoria constantes)
+          
+          (valor* 
+            (cons (valor_de valor) (cdr expresion))
             (memoria_de valor memoria)
+            constantes
+            operadores
+            operandos
           )
+          
         )
       )
     )
@@ -293,7 +321,9 @@
 (defun valores* (expresiones memoria constantes)
   (if_valido_lambda 
     (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
-    'valor_de
+    (lambda (valores)
+      (mapcar 'valor_de valores)
+    )
   )
 )
 
