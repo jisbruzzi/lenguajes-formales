@@ -119,9 +119,110 @@
   nueva
 )
 
+(defun ejecutar_expresion* (evaluador expresion)
+  (cond
+    (
+      (es_asignacion_operacion expresion)
+      (if_valido_lambda (operacion_de* (cadr expresion))
+        (lambda (operacion)
+          (ejecutar_expresion*
+            evaluador
+            (append
+              (list 
+                (car expresion) 
+                '=
+                (car expresion) 
+                operacion
+              )
+              (cddr expresion)
+            )
+          )
+        )
+      )
+    )
+    (
+      (es_asignacion expresion)
+      (if_valido_lambda (evaluar* evaluador (cddr expresion)) 
+        (lambda (valor)
+          (modificar_memoria* 
+            (list (car expresion) (cadr expresion) valor)
+            '();NO LEO STDIN
+            (ev_memoria_de evaluador)
+            '();NO HAGO OUTPUT
+            (ev_constantes_de evaluador)
+          )
+        )
+      )
+    )
+    (
+      T
+      (ev_memoria_de evaluador)
+    )
+  )
+)
 
-(defun operar_completo* (evaluador op izq der);esto tiene que: ejecutar a izquierda, luego ejecutar a derecha CON LA MEMORIA RESULTADO DE EJECUTAR A IZQUIERDA, luego evaluar a izquierda, luego evaluar a derecha, luego operar
-  
+(defun evaluar* (evaluador expresion)
+  (cond
+    (
+      (and (atom expresion) (not (null expresion)))
+      (cond 
+        ((numberp expresion) expresion )
+        ((stringp expresion) expresion )
+        (
+          (es_valido (buscar_en_memoria* expresion memoria))
+          (buscar_en_memoria* expresion memoria)
+        )
+        (
+          (es_valido (buscar_en_memoria* expresion constantes))
+          (buscar_en_memoria* expresion constantes)
+        )
+        (
+          T (exc (list "No se conoce el valor de" expresion))
+        )
+      )
+    )
+    
+    (
+      (and 
+        (listp  expresion) 
+        (not (es_asignacion expresion))
+        (not (es_asignacion_operacion expresion))
+      )
+      (valor_algebraico* evaluador expresion)
+    )
+    (
+      (es_asignacion expresion)
+      (evaluar* evaluador (car expresion))
+    )
+    (
+      (es_asignacion_operacion expresion)
+      (evaluar* evaluador (car expresion))
+    )
+    (
+      T
+      (exc (list "No es una expresión cuyo valor sepa calcular." expresion))
+    )
+  )
+)
+
+(defun operar_completo* (evaluador op izq der)
+;esto tiene que: ejecutar a izquierda, luego ejecutar a derecha CON LA MEMORIA RESULTADO DE EJECUTAR A IZQUIERDA, luego evaluar a izquierda, luego evaluar a derecha, luego operar
+  (if_valido_lambda (ejecutar_expresion* evaluador izq)
+    (lambda (memoria_izq)
+      (if_valido_lambda 
+        (ejecutar_expresion* (ev_con_memoria memoria_izq) der)
+        (lambda (memoria_der)
+          (if_valido_lambda
+            (evaluar* (ev_con_memoria evaluador memoria_der) izq )
+            (evaluar* (ev_con_memoria evaluador memoria_der) der )
+            (lambda (valor_izq valor_der)
+              (operar* op valor_izq valor_der)
+            )
+          )
+        )
+      )
+    )
+  )  
 )
 
 
@@ -138,12 +239,10 @@
       )
       (
         (and (es_operador (car expresion)) (null operadores))
-        ;(print "D")
         (funcall evaluar_de_expresion)
       )
       (
         (and (es_operador (car expresion)) (not (null operadores)) )
-        ;(print "G")
         (if (< (peso (car operadores)) (peso (car expresion)) )
           (funcall evaluar_de_expresion)
           (funcall evaluar_de_operadores)
@@ -184,115 +283,7 @@
   ;(print constantes)
   ;(print operadores)
   ;(print operandos)
-  (cond
-    (
-      (and (atom expresion) (not (null expresion)))
-      ;(print "A")
-      (cond 
-        ((numberp expresion) (con_memoria expresion memoria) )
-        ((stringp expresion) (con_memoria expresion memoria) )
-        (
-          (es_valido (buscar_en_memoria* expresion memoria))
-          (con_memoria (buscar_en_memoria* expresion memoria) memoria)
-        )
-        (
-          (es_valido (buscar_en_memoria* expresion constantes))
-          (con_memoria (buscar_en_memoria* expresion constantes) memoria)
-        )
-        (
-          T (exc (list "No se conoce el valor de" expresion))
-        )
-      )
-    )
-    
-    (
-      (es_asignacion_operacion expresion)
-      ;(print "E")
-      (if_valido_lambda (operacion_de* (cadr expresion))
-        (lambda (operacion)
-          (valor* 
-            (append
-              (list 
-                (car expresion) 
-                '=
-                (car expresion) 
-                operacion
-              )
-              (cddr expresion)
-            )
-            memoria 
-            constantes
-            operadores
-            operandos
-          )
-        )
-      )
-    )
-    (
-      (es_asignacion expresion)
-      ;(print "F")
-      (if_valido_lambda (valor* (cddr expresion) memoria constantes) 
-        (lambda (valor)
-          (con_memoria 
-            (valor_de valor)
-            (modificar_memoria* 
-              (list (car expresion) (cadr expresion) (valor_de valor))
-              '();NO LEO STDIN
-              memoria 
-              '();NO HAGO OUTPUT
-              constantes
-            )
-          )
-        )
-      )
-      
-    )
-    
-    (
-      (or (numberp (car expresion)) (symbolp (car expresion)))
-      ;(print "H")
-      (if_valido_lambda 
-        (valor* (car expresion) memoria constantes)
-        (lambda (v) 
-          (valor*
-            (cdr expresion)
-            memoria
-            constantes
-            operadores
-            (cons v operandos)
-          )
-        )
-      )
-    )
-
-    (
-      (and 
-        (listp (car expresion)) 
-        (not (es_valor_con_memoria (car expresion)))
-      )
-      ;(print "I")
-      (if_valido_lambda 
-        (valor* (car expresion) memoria constantes operadores operandos)
-        (lambda (valor)
-          
-          (valor* 
-            (cons (valor_de valor) (cdr expresion))
-            (memoria_de valor memoria)
-            constantes
-            operadores
-            operandos
-          )
-          
-        )
-      )
-    )
-
-    (
-      T
-      (exc (list "No es una expresión cuyo valor sepa calcular." expresion))
-    )
-
-  )
+  
 )
 
 (defun mapcar* (f L)
