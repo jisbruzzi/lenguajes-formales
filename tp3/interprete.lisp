@@ -145,11 +145,11 @@
       (if_valido_lambda (evaluar* evaluador (cddr expresion)) 
         (lambda (valor)
           (modificar_memoria* 
-            (list (car expresion) (cadr expresion) valor)
+            (list (car expresion) (cadr expresion) (resultado_de valor))
             '();NO LEO STDIN
-            (ev_memoria_de evaluador)
+            (ev_memoria_de (evaluador_de valor))
             '();NO HAGO OUTPUT
-            (ev_constantes_de evaluador)
+            (ev_constantes_de (evaluador_de valor))
           )
         )
       )
@@ -166,15 +166,15 @@
     (
       (and (atom expresion) (not (null expresion)))
       (cond 
-        ((numberp expresion) expresion )
-        ((stringp expresion) expresion )
+        ((numberp expresion)(con_evaluador evaluador expresion) )
+        ((stringp expresion) (con_evaluador evaluador expresion) )
         (
-          (es_valido (buscar_en_memoria* expresion memoria))
-          (buscar_en_memoria* expresion memoria)
+          (es_valido (ev_buscar_en_memoria* evaluador expresion))
+          (con_evaluador evaluador (ev_buscar_en_memoria* evaluador expresion))
         )
         (
-          (es_valido (buscar_en_memoria* expresion constantes))
-          (buscar_en_memoria* expresion constantes)
+          (es_valido (ev_buscar_en_constantes* evaluador expresion))
+          (con_evaluador evaluador (ev_buscar_en_constantes* evaluador expresion))
         )
         (
           T (exc (list "No se conoce el valor de" expresion))
@@ -188,7 +188,8 @@
         (not (es_asignacion expresion))
         (not (es_asignacion_operacion expresion))
       )
-      (valor_algebraico* evaluador expresion)
+      
+      (valor_algebraico* evaluador expresion nil nil)
     )
     (
       (es_asignacion expresion)
@@ -210,13 +211,16 @@
   (if_valido_lambda (ejecutar_expresion* evaluador izq)
     (lambda (memoria_izq)
       (if_valido_lambda 
-        (ejecutar_expresion* (ev_con_memoria memoria_izq) der)
+        (ejecutar_expresion* (ev_con_memoria evaluador memoria_izq) der)
         (lambda (memoria_der)
           (if_valido_lambda
             (evaluar* (ev_con_memoria evaluador memoria_der) izq )
             (evaluar* (ev_con_memoria evaluador memoria_der) der )
             (lambda (valor_izq valor_der)
-              (operar* op valor_izq valor_der)
+              (con_evaluador
+                (ev_con_memoria evaluador memoria_der)
+                (operar* op (resultado_de valor_izq) (resultado_de valor_der))
+              )
             )
           )
         )
@@ -225,13 +229,21 @@
   )  
 )
 
-
-(defun valor_algebraico* (expresion evaluador operadores operandos)
-  (funcall (lambda  (evaluar_de_expresion evaluar_de_operadores)
+(defun con_evaluador (evaluador resultado)
+  (list evaluador resultado)
+)
+(defun evaluador_de (v)
+  (car v)
+)
+(defun resultado_de (v)
+  (cadr v)
+)
+(defun valor_algebraico* (evaluador expresion operadores operandos)
+  (funcall (lambda  (evaluar_de_expresion evaluar_de_operadores agregar_expresion_como_operando)
     (cond
       (
         (and (null expresion) (null operadores))
-        (car operandos)
+        (con_evaluador evaluador (car operandos))
       )
       (
         (and (null expresion) (not (null operadores)))
@@ -248,13 +260,17 @@
           (funcall evaluar_de_operadores)
         )
       )
+      (
+        (or (numberp (car expresion)) (symbolp (car expresion)) (listp (car expresion)))
+        (funcall agregar_expresion_como_operando)
+      )
     )
   )
 
   (lambda ();evaluar_de_expresion
     (valor_algebraico*
-      (cdr expresion) 
       evaluador
+      (cdr expresion) 
       (cons (car expresion) operadores) 
       operandos
     )
@@ -264,26 +280,68 @@
       (operar_completo* evaluador (car operadores) (cadr operandos)  (car operandos))
       (lambda (resultado_operacion)
         (valor_algebraico*
+          (evaluador_de resultado_operacion)
           expresion
-          evaluador
           (cdr operadores)
-          (cons resultado_operacion (cddr operandos) )
+          (cons (resultado_de resultado_operacion) (cddr operandos) )
         )
       )
+    )
+  )
+  (lambda ();agregar_expresion_como_operando
+    (valor_algebraico*
+      evaluador
+      (cdr expresion)
+      operadores
+      (cons (car expresion) operandos)
     )
   )
   
   )
 )
+
+(defun ev_buscar_en_memoria* (evaluador variable)
+  (buscar_en_memoria* variable (ev_memoria_de evaluador) )
+)
+(defun ev_buscar_en_constantes* (evaluador variable)
+  (buscar_en_memoria* variable (ev_constantes_de evaluador) )
+)
+
+(defun ev_memoria_de (evaluador)
+  (if (eq (car evaluador) 'evaluador)
+    (cadr evaluador)
+    nil
+  )
+)
+
+(defun ev_constantes_de (evaluador)
+  (if (eq (car evaluador) 'evaluador)
+    (caddr evaluador)
+    nil
+  )
+)
+
+(defun ev_con_memoria (evaluador memoria)
+  (list
+    'evaluador
+    memoria
+    (ev_constantes_de evaluador)
+  )
+)
+
+(defun hacer_evaluador_con (memoria constantes)
+  (list 'evaluador memoria constantes)
+)
 ;FALTA REFACTORIZAR LOS CONDS QUE DEJÉ VIVOS
-(defun valor* (expresion memoria constantes &optional (operadores nil) (operandos nil))
-  ;(print 'vvvvvvvvvvvvvv)
-  ;(print expresion)
-  ;(print memoria)
-  ;(print constantes)
-  ;(print operadores)
-  ;(print operandos)
-  
+(defun valor* (expresion memoria constantes)
+  (if_valido_lambda (evaluar* (hacer_evaluador_con memoria constantes) expresion)
+    (lambda (resultado)
+      (con_memoria
+        (resultado_de resultado)
+        (ev_memoria_de (evaluador_de resultado))
+      )
+    ) 
+  )
 )
 
 (defun mapcar* (f L)
@@ -529,9 +587,9 @@
 
 (defun es_scanf (instruccion) (eq (car instruccion) 'scanf))
 (defun es_printf (instruccion) (eq (car instruccion) 'printf))
-(defun es_asignacion (instruccion) (eq (cadr instruccion) '=))
+(defun es_asignacion (instruccion) (and (listp instruccion) (eq (cadr instruccion) '=)))
 (defun es_asignacion_operacion (instruccion) 
-  (pertenece (cadr instruccion) '(+= -= *= /= %= ++ --))
+  (and (listp instruccion) (pertenece (cadr instruccion) '(+= -= *= /= %= ++ --)))
 )
 (defun operacion_de* (eqop) 
   (cond

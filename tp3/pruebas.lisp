@@ -49,7 +49,6 @@
 (test (valor_de (valor* '(x + n - 1 < 10) '(x 1) '(N 1)))  T)
 
 
-
 (test
   (run '(
     (int x)
@@ -71,11 +70,6 @@
   ) '(2))
   '(10 2 3 4 5 6 7 8 9)
 )
-
-
-
-
-
 
 (test (run 
   '((main (
@@ -116,6 +110,7 @@
   )))
   nil
 ) '("no"))
+
 
 
 (test (run
@@ -167,6 +162,7 @@
   )
   '(120)
 )
+
 
 (test 
   (run
@@ -361,9 +357,6 @@
 '(6)
 )
 
-
-
-
 (test (run '(
 (int x)
 (int z = 10)
@@ -375,6 +368,9 @@
 ) '(2))
 '(6 5)
 )
+
+
+
 
 (test (run '(
 (int x)
@@ -445,7 +441,8 @@
   (printf x)
 ))
 ) '(2))
-'(24 11) ;el resultado de javascript
+;'(24 11) ;el resultado de javascript
+'(31 11);el resultado de C
 )
 
 
@@ -456,6 +453,82 @@
     'NIL
   )
   '(valor_con_memoria 24 (x 11 z 0))
+)
+
+
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  x + (x = z / 2))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(6 5); javascript
+'(10 5);C
+)
+
+
+(test (run '(
+(int x = 0)
+(int z = 10)
+(main (
+  (printf z)
+  (if (12 < (z = x + (x = z / 2))) (
+    (printf "si")
+  ) else (
+    (printf "no")
+  ))
+  (printf z)
+))
+) '(2))
+;'(10 "no" 5); javascript
+'(10 "no" 10); javascript
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  x + (x = z / 5 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(5 4); javascript
+'(8 4);C
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(11 8); javascript
+'(16 8); C
+)
+
+
+(test (run '(
+(int x = 3)
+(int z = 10)
+(main (
+  (if ( (x = x * 2) == (x = x + 1) )(
+    (printf "verdadero")
+  )else(
+    (printf "falso")
+  ))
+  (printf x)  
+))
+) '(2))
+;'("falso" 7); javascript
+'("verdadero" 7); C
 )
 
 
@@ -487,73 +560,4 @@
     ) '())
   )
   '( (0 1 0 1) (0 0 1 1))
-)
-
-(test (run '(
-(int x = 1)
-(int z = 10)
-(main (
-  (z =  x + (x = z / 2))
-  (printf z)
-  (printf x)
-))
-) '(2))
-'(6 5); javascript
-)
-
-
-(test (run '(
-(int x = 0)
-(int z = 10)
-(main (
-  (printf z)
-  (if (12 < (z = x + (x = z / 2))) (
-    (printf "si")
-  ) else (
-    (printf "no")
-  ))
-  (printf z)
-))
-) '(2))
-'(10 "no" 5); javascript
-)
-
-(test (run '(
-(int x = 1)
-(int z = 10)
-(main (
-  (z =  x + (x = z / 5 * ( x = x + 1 ) ))
-  (printf z)
-  (printf x)
-))
-) '(2))
-'(5 4); javascript
-)
-
-(test (run '(
-(int x = 1)
-(int z = 10)
-(main (
-  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) ))
-  (printf z)
-  (printf x)
-))
-) '(2))
-'(11 8); javascript
-)
-
-
-(test (run '(
-(int x = 3)
-(int z = 10)
-(main (
-  (if ( (x = x * 2) == (x = x + 1) )(
-    (printf "verdadero")
-  )else(
-    (printf "falso")
-  ))
-  (printf x)  
-))
-) '(2))
-'("falso" 7); javascript
 )
