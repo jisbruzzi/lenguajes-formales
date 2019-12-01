@@ -1,5 +1,4 @@
 (load 'interprete)
-
 (defun test (elemento resultado)
   (if (equal elemento resultado)
     (print "ok")
@@ -38,15 +37,15 @@
 )
 
 
-(test (valor_de (valor* '(1 - 2 * 2) nil nil))  -3)
-(test (valor_de (valor* '(4 < 5) nil nil))  T)
-(test (valor_de (valor* '(N < 5) '(N 4) nil))  T)
-(test (valor_de (valor* '(4 == 4) nil nil))  T)
-(test (valor_de (valor* '(N == 4) '(N 4) nil))  T)
-(test (valor_de (valor* '(5 < 4) nil nil))  0)
-(test (valor_de (valor* '(5 < N) '(N 4) nil))  0)
-(test (valor_de (valor* '(5 < N) nil '(N 4)))  0)
-(test (valor_de (valor* '(x + n - 1 < 10) '(x 1) '(N 1)))  T)
+(test (valor* '(1 - 2 * 2) nil nil)  -3)
+(test (valor* '(4 < 5) nil nil)  T)
+(test (valor* '(N < 5) '(N 4) nil)  T)
+(test (valor* '(4 == 4) nil nil)  T)
+(test (valor* '(N == 4) '(N 4) nil)  T)
+(test (valor* '(5 < 4) nil nil)  0)
+(test (valor* '(5 < N) '(N 4) nil)  0)
+(test (valor* '(5 < N) nil '(N 4))  0)
+(test (valor* '(x + n - 1 < 10) '(x 1) '(N 1))  T)
 
 
 (test
@@ -71,6 +70,7 @@
   '(10 2 3 4 5 6 7 8 9)
 )
 
+
 (test (run 
   '((main (
     (if (1) (
@@ -90,6 +90,7 @@
   )))
   nil
 ) '("si"))
+
 
 (test (run 
   '((main (
@@ -174,7 +175,7 @@
     )
     '(5)
   )
-  '(excepcion ("No se conoce el valor de" Q))
+  '(excepcion ("Una variable no se encuentra en el ambiente" Q))
 )
 
 (test (run '(
@@ -357,18 +358,6 @@
 '(6)
 )
 
-(test (run '(
-(int x)
-(int z = 10)
-(main (
-  (z = (x = z / 2) + 1)
-  (printf z)
-  (printf x)
-))
-) '(2))
-'(6 5)
-)
-
 
 
 
@@ -386,6 +375,19 @@
 ))
 ) '(2))
 '(10 "si" 11)
+)
+
+
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (z = (x = z / 2) + 1)
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(6 5)
 )
 
 (test (run '(
@@ -432,18 +434,7 @@
 )
 
 
-(test (run '(
-(int x = 1)
-(int z = 0)
-(main (
-  (z =  (x = x * 3) + (x = x + 7) + (x = x + 1))
-  (printf z)
-  (printf x)
-))
-) '(2))
-;'(24 11) ;el resultado de javascript
-'(31 11);el resultado de C
-)
+
 
 
 (test 
@@ -452,7 +443,7 @@
     '(X 3 Z 0) 
     'NIL
   )
-  '(valor_con_memoria 24 (x 11 z 0))
+  24
 )
 
 
@@ -492,19 +483,6 @@
 (int x = 1)
 (int z = 10)
 (main (
-  (z =  x + (x = z / 5 * ( x = x + 1 ) ))
-  (printf z)
-  (printf x)
-))
-) '(2))
-;'(5 4); javascript
-'(8 4);C
-)
-
-(test (run '(
-(int x = 1)
-(int z = 10)
-(main (
   (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) ))
   (printf z)
   (printf x)
@@ -530,7 +508,6 @@
 ;'("falso" 7); javascript
 '("verdadero" 7); C
 )
-
 
 (test_no_determinista 
   (lambda () 
@@ -560,4 +537,143 @@
     ) '())
   )
   '( (0 1 0 1) (0 0 1 1))
+)
+
+(test
+
+(run '(
+(int x = 8)
+(int z = 10)
+(main (
+  (z = ( (x += 3) + ( x = x + 1 )))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+'(24 12)
+
+)
+
+
+
+
+(test
+
+(run '(
+(int x = 8)
+(int z = 10)
+(main (
+  (z = 16 + ( ( x = 1) ) )
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+'(17 1)
+
+)
+
+(test
+
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z = 5 +  (x += 3) + ( x = x + 1 ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+'(14 5);chequeado contra C
+
+)
+
+(test (run '(
+(int x = 1)
+(int z = 0)
+(main (
+  (z =  (x = x * 3) + (x = x + 7) + (x = x + 1))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(24 11) ;el resultado de javascript
+'(31 11);el resultado de C
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  x + (x = 2 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(5 4); javascript
+'(8 4);C
+)
+
+(test
+
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z = 5 +  ((x += 3) + ( x = x + 1 )))
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(15 5);chequeado contra C
+
+)
+
+
+(test
+
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  ( x = x + 2) +  (x = x + 1 ) * (x = x + 1 ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+'(30 5);chequeado contra C
+
+)
+
+
+(test
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) )+( (x += 3)+ ( x = x + 1 )))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+  '(40 12)
+)
+
+
+(test
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) )+ (x += 3)+ ( x = x + 1 ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+  '(39 12)
 )

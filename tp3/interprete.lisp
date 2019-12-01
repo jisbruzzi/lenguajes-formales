@@ -1,3 +1,4 @@
+(load 'evaluar)
 (defun ultimo (L)
   (car (reverse L))
 )
@@ -41,10 +42,6 @@
   (list 'excepcion mensaje)
 )
 
-(defun es_operador (a)
-  (pertenece a '(+ - * / % < > <= >= && || ^^ ==))
-)
-
 (defun buscar_en_memoria* (k memoria)
   (cond
     ( (eq (car memoria) k) (cadr memoria) )
@@ -58,289 +55,27 @@
 
 (defun reemplazar_nil_por_cero (x) (if (null x) 0 x) )
 
-(defun operar* (op izq der)
-  (reemplazar_nil_por_cero (cond
-    ((eq op '+) (+ izq der))
-    ((eq op '-) (- izq der))
-    ((eq op '*) (* izq der))
-    ((eq op '/) (/ izq der))
-    ((eq op '%) (% izq der))
-    ((eq op '<) (< izq der))
-    ((eq op '>) (> izq der))
-    ((eq op '<=) (<= izq der))
-    ((eq op '>=) (>= izq der))
-    ((eq op '&&) (and izq der))
-    ((eq op '||) (or izq der))
-    ((eq op '^^) (and (or izq der) (not (and izq der))))
-    ((eq op '==) (eq izq der))
-    (T (exc (list "No se sabe operar con el operador" op)))
-  ))
-)
-
-(defun peso (op)
-  (cond
-  ((pertenece op '(< > <= >= ==)) 1)
-    ((pertenece op '(+ -)) 2)
-    ((pertenece op '(* / %)) 3)
-    ((pertenece op '(&& || ^^)) 4)
-  )
-
-)
-
-(defun valor_de (v)
-  (if 
-    (es_valor_con_memoria v)
-    
-    (nth 1 v)
-    v
+(defun buscar_en_memoria_completo* (k constantes memoria)
+  (if (es_valido (buscar_en_memoria* k constantes))
+    (buscar_en_memoria* k constantes)
+    (buscar_en_memoria* k memoria)
   )
 )
 
-(defun con_memoria (valor memoria)
-  (list 'valor_con_memoria valor memoria)
-)
-
-(defun memoria_de (valor alternativa)
-  
-  (if (es_valor_con_memoria valor)
-    (nth 2 valor)  
-    alternativa
-  )
-)
-
-(defun es_valor_con_memoria (v)
-  (and 
-      (listp v)
-      (eq 'valor_con_memoria (car v))
-    )
-)
-
-(defun fusionar_memorias (original nueva)
-  nueva
-)
-
-(defun ejecutar_expresion* (evaluador expresion)
-  (cond
-    (
-      (es_asignacion_operacion expresion)
-      (if_valido_lambda (operacion_de* (cadr expresion))
-        (lambda (operacion)
-          (ejecutar_expresion*
-            evaluador
-            (append
-              (list 
-                (car expresion) 
-                '=
-                (car expresion) 
-                operacion
-              )
-              (cddr expresion)
-            )
-          )
-        )
-      )
-    )
-    (
-      (es_asignacion expresion)
-      (if_valido_lambda (evaluar* evaluador (cddr expresion)) 
-        (lambda (valor)
-          (modificar_memoria* 
-            (list (car expresion) (cadr expresion) (resultado_de valor))
-            '();NO LEO STDIN
-            (ev_memoria_de (evaluador_de valor))
-            '();NO HAGO OUTPUT
-            (ev_constantes_de (evaluador_de valor))
-          )
-        )
-      )
-    )
-    (
-      T
-      (ev_memoria_de evaluador)
-    )
-  )
-)
-
-(defun evaluar* (evaluador expresion)
-  (cond
-    (
-      (and (atom expresion) (not (null expresion)))
-      (cond 
-        ((numberp expresion)(con_evaluador evaluador expresion) )
-        ((stringp expresion) (con_evaluador evaluador expresion) )
-        (
-          (es_valido (ev_buscar_en_memoria* evaluador expresion))
-          (con_evaluador evaluador (ev_buscar_en_memoria* evaluador expresion))
-        )
-        (
-          (es_valido (ev_buscar_en_constantes* evaluador expresion))
-          (con_evaluador evaluador (ev_buscar_en_constantes* evaluador expresion))
-        )
-        (
-          T (exc (list "No se conoce el valor de" expresion))
-        )
-      )
-    )
-    
-    (
-      (and 
-        (listp  expresion) 
-        (not (es_asignacion expresion))
-        (not (es_asignacion_operacion expresion))
-      )
-      
-      (valor_algebraico* evaluador expresion nil nil)
-    )
-    (
-      (es_asignacion expresion)
-      (evaluar* evaluador (car expresion))
-    )
-    (
-      (es_asignacion_operacion expresion)
-      (evaluar* evaluador (car expresion))
-    )
-    (
-      T
-      (exc (list "No es una expresión cuyo valor sepa calcular." expresion))
-    )
-  )
-)
-
-(defun operar_completo* (evaluador op izq der)
-;esto tiene que: ejecutar a izquierda, luego ejecutar a derecha CON LA MEMORIA RESULTADO DE EJECUTAR A IZQUIERDA, luego evaluar a izquierda, luego evaluar a derecha, luego operar
-  (if_valido_lambda (ejecutar_expresion* evaluador izq)
-    (lambda (memoria_izq)
-      (if_valido_lambda 
-        (ejecutar_expresion* (ev_con_memoria evaluador memoria_izq) der)
-        (lambda (memoria_der)
-          (if_valido_lambda
-            (evaluar* (ev_con_memoria evaluador memoria_der) izq )
-            (evaluar* (ev_con_memoria evaluador memoria_der) der )
-            (lambda (valor_izq valor_der)
-              (con_evaluador
-                (ev_con_memoria evaluador memoria_der)
-                (operar* op (resultado_de valor_izq) (resultado_de valor_der))
-              )
-            )
-          )
-        )
-      )
-    )
-  )  
-)
-
-(defun con_evaluador (evaluador resultado)
-  (list evaluador resultado)
-)
-(defun evaluador_de (v)
-  (car v)
-)
-(defun resultado_de (v)
-  (cadr v)
-)
-(defun valor_algebraico* (evaluador expresion operadores operandos)
-  (funcall (lambda  (evaluar_de_expresion evaluar_de_operadores agregar_expresion_como_operando)
-    (cond
-      (
-        (and (null expresion) (null operadores))
-        (con_evaluador evaluador (car operandos))
-      )
-      (
-        (and (null expresion) (not (null operadores)))
-        (funcall evaluar_de_operadores)
-      )
-      (
-        (and (es_operador (car expresion)) (null operadores))
-        (funcall evaluar_de_expresion)
-      )
-      (
-        (and (es_operador (car expresion)) (not (null operadores)) )
-        (if (< (peso (car operadores)) (peso (car expresion)) )
-          (funcall evaluar_de_expresion)
-          (funcall evaluar_de_operadores)
-        )
-      )
-      (
-        (or (numberp (car expresion)) (symbolp (car expresion)) (listp (car expresion)))
-        (funcall agregar_expresion_como_operando)
-      )
-    )
-  )
-
-  (lambda ();evaluar_de_expresion
-    (valor_algebraico*
-      evaluador
-      (cdr expresion) 
-      (cons (car expresion) operadores) 
-      operandos
-    )
-  )
-  (lambda ();evaluar_de_operadores
-    (if_valido_lambda
-      (operar_completo* evaluador (car operadores) (cadr operandos)  (car operandos))
-      (lambda (resultado_operacion)
-        (valor_algebraico*
-          (evaluador_de resultado_operacion)
-          expresion
-          (cdr operadores)
-          (cons (resultado_de resultado_operacion) (cddr operandos) )
-        )
-      )
-    )
-  )
-  (lambda ();agregar_expresion_como_operando
-    (valor_algebraico*
-      evaluador
-      (cdr expresion)
-      operadores
-      (cons (car expresion) operandos)
-    )
-  )
-  
-  )
-)
-
-(defun ev_buscar_en_memoria* (evaluador variable)
-  (buscar_en_memoria* variable (ev_memoria_de evaluador) )
-)
-(defun ev_buscar_en_constantes* (evaluador variable)
-  (buscar_en_memoria* variable (ev_constantes_de evaluador) )
-)
-
-(defun ev_memoria_de (evaluador)
-  (if (eq (car evaluador) 'evaluador)
-    (cadr evaluador)
-    nil
-  )
-)
-
-(defun ev_constantes_de (evaluador)
-  (if (eq (car evaluador) 'evaluador)
-    (caddr evaluador)
-    nil
-  )
-)
-
-(defun ev_con_memoria (evaluador memoria)
-  (list
-    'evaluador
-    memoria
-    (ev_constantes_de evaluador)
-  )
-)
-
-(defun hacer_evaluador_con (memoria constantes)
-  (list 'evaluador memoria constantes)
-)
-;FALTA REFACTORIZAR LOS CONDS QUE DEJÉ VIVOS
 (defun valor* (expresion memoria constantes)
-  (if_valido_lambda (evaluar* (hacer_evaluador_con memoria constantes) expresion)
-    (lambda (resultado)
-      (con_memoria
-        (resultado_de resultado)
-        (ev_memoria_de (evaluador_de resultado))
-      )
-    ) 
+  ;en 'evaluar.lisp'
+  (evaluar* expresion memoria constantes 
+    (lambda (k c m) (buscar_en_memoria_completo* k c m))
+    (lambda (k c m) (reasignar* k c m))
+    
+  )
+)
+
+(defun memoria_de_evaluar* (expresion memoria constantes)
+  ;en 'evaluar.lisp'
+  (ejecutar* expresion memoria constantes 
+    (lambda (k c m) (buscar_en_memoria_completo* k c m))
+    (lambda (k c m) (reasignar* k c m))
   )
 )
 
@@ -358,12 +93,7 @@
   )
 )
 (defun valores* (expresiones memoria constantes)
-  (if_valido_lambda 
-    (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
-    (lambda (valores)
-      (mapcar 'valor_de valores)
-    )
-  )
+  (mapcar* (lambda (e) (valor* e memoria constantes)) expresiones)
 )
 
 (defun hay_algun_1 (valores)
@@ -414,7 +144,7 @@
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
-          (if (not (eq (valor_de valor) 0 ))
+          (if (not (eq valor 0 ))
             (append (caddr instruccion) cola_programa)
             (if (es_if_con_else instruccion)
               (append (car (cddddr instruccion)) cola_programa)
@@ -448,7 +178,7 @@
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
         (lambda (valor)
-          (if (not (eq (valor_de valor) 0 ))
+          (if (not (eq valor 0 ))
             (append
               (caddr instruccion)
               (cons instruccion cola_programa)
@@ -494,12 +224,13 @@
       (es_asignacion instruccion)
       (if_valido_lambda 
         (valor* (cddr instruccion) memoria constantes)
-        (lambda (valor)
+        (memoria_de_evaluar* (cddr instruccion) memoria constantes)
+        (lambda (valor memoria)
           (reasignar* 
             (car instruccion) 
-            (valor_de valor) 
+            valor
             constantes 
-            (memoria_de valor memoria)
+            memoria
           )  
         )
       )
@@ -509,7 +240,8 @@
       (if_valido_lambda 
         (valor* (cddr instruccion) memoria constantes)
         (operacion_de* (cadr instruccion))
-        (lambda (valor operacion)
+        (memoria_de_evaluar* (cadr instruccion) memoria constantes)
+        (lambda (valor operacion memoria)
           (modificar_memoria*
             (list 
               (car instruccion) 
@@ -518,11 +250,11 @@
               operacion
               (if (es_postfijo (cadr instruccion))
                 1
-                (valor_de valor)
+                valor
               )
             )
             entrada
-            (memoria_de valor memoria)
+            memoria
             salida
             constantes
           )
@@ -552,8 +284,9 @@
       (or (es_if_deterministico  instruccion) (es_while instruccion))
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
-        (lambda (valor)
-          (memoria_de valor memoria)
+        (memoria_de_evaluar* (cadr instruccion) memoria constantes)
+        (lambda (valor memoria)
+          memoria
         )
       )
     )
@@ -569,7 +302,7 @@
       (es_printf instruccion)
       (if_valido_lambda 
         (valor* (cadr instruccion) memoria constantes)
-        (lambda (valor) (cons (valor_de valor) salida))
+        (lambda (valor) (cons valor salida))
       )
     )
     (T salida)
@@ -587,25 +320,7 @@
 
 (defun es_scanf (instruccion) (eq (car instruccion) 'scanf))
 (defun es_printf (instruccion) (eq (car instruccion) 'printf))
-(defun es_asignacion (instruccion) (and (listp instruccion) (eq (cadr instruccion) '=)))
-(defun es_asignacion_operacion (instruccion) 
-  (and (listp instruccion) (pertenece (cadr instruccion) '(+= -= *= /= %= ++ --)))
-)
-(defun operacion_de* (eqop) 
-  (cond
-    ((eq eqop '+=) '+)
-    ((eq eqop '-=) '-)
-    ((eq eqop '*=) '*)
-    ((eq eqop '/=) '/)
-    ((eq eqop '%=) '%)
-    ((eq eqop '++) '+)
-    ((eq eqop '--) '-)
-    (T (exc (list "No conozco la operación correspondiente a " eqop)))
-  )
-)
-(defun es_postfijo (eqop)
-  (or (eq '++ eqop) (eq '-- eqop))
-)
+
 (defun es_prefijo (instruccion) 
   (pertenece (car instruccion) '(++ --))
 )
@@ -654,13 +369,6 @@
   )
 )
 
-(defun pertenece (v conjunto)
-  (cond
-    ((null conjunto) nil)
-    ((eq (car conjunto) v) T)
-    (T (pertenece v (cdr conjunto)))
-  )
-)
 
 (defun es_funcion_conocida (instruccion)
   (or
