@@ -1,149 +1,146 @@
 (load 'lispizar)
+(load 'polaquizar)
 
-(defun operar* (op izq der)
-  (reemplazar_nil_por_cero (cond
-    ((eq op 'sumar) (+ izq der))
-    ((eq op 'restar) (- izq der))
-    ((eq op 'multiplicar) (* izq der))
-    ((eq op 'dividir) (/ izq der))
-    ((eq op 'modulo) (% izq der))
-    ((eq op 'menor) (< izq der))
-    ((eq op 'mayor) (> izq der))
-    ((eq op 'menor_o_igual) (<= izq der))
-    ((eq op 'mayor_o_igual) (>= izq der))
-    ((eq op 'and) (and izq der))
-    ((eq op 'or) (or izq der))
-    ((eq op 'xor) (and (or izq der) (not (and izq der))))
-    ((eq op 'igual) (eq izq der))
+
+(defun valor_numerico (instruccion memoria buscar*)
+  (cond
+    ((eq (car instruccion) 'literal ) (cadr instruccion))
+    ((eq (car instruccion) 'referencia ) (funcall buscar* (cadr instruccion) memoria))
+  )
+)
+
+(defun operar (nombre_operacion izq der memoria buscar*)
+  (funcall 
+    (lambda (vi vd op)
+      (cond
+        ( (eq op 'sumar) (+ vi vd))
+        ( (eq op 'restar) (- vi vd))
+        ( (eq op 'multiplicar) (* vi vd))
+        ( (eq op 'dividir) (/ vi vd))
+        ( (eq op 'modulo) (% vi vd))
+        ( (eq op 'menor) (< vi vd))
+        ( (eq op 'mayor) (> vi vd))
+        ( (eq op 'menor_o_igual) (<= vi vd))
+        ( (eq op 'mayor_o_igual) (>= vi vd))
+        ( (eq op 'and) (and vi vd))
+        ( (eq op 'or) (or vi vd))
+        ( (eq op 'xor) (and (or vi vd) (not (and vi vd))))
+        ( (eq op 'igual) (eq vi vd))
+      )
+    )
+    (valor_numerico izq memoria  buscar*)
+    (valor_numerico der memoria  buscar*)
+    nombre_operacion
+  )
+)
+
+(defun correr_instruccion_polaca (instruccion stack memoria buscar* reasignar_var*)
+  (cond
+    (
+      (eq (car instruccion) 'push_literal)
+      (list 
+        (cons 
+          (list 
+            'literal 
+            (cadr instruccion)
+          ) 
+          stack
+        ) 
+        memoria
+      )
+    )
+    (
+      (eq (car instruccion) 'pop_pop_operar_push)
+      (list 
+        (cons 
+          (list 
+            'literal 
+            (operar (cadr instruccion) (cadr stack) (car stack) memoria buscar*)
+          )
+          (cddr stack) 
+        )
+        memoria
+      )
+    )
+    (
+      (eq (car instruccion) 'push_referencia)
+      (list
+        (cons
+          (list
+            'referencia
+            (cadr instruccion)
+          )
+          stack
+        )
+        memoria
+      )
+    )
+    (
+      (eq (car instruccion) 'ASIGNAR_Y_PUSH_REFERENCIA)
+      (list
+        (cons
+          (list 'referencia (cadr instruccion))
+          (cdr stack)
+        )
+        (funcall reasignar_var* 
+          (cadr instruccion) 
+          (valor_numerico (car stack) memoria buscar*)
+          memoria 
+        )
+      )
+    )
+    (
+      (eq (car instruccion) 'finalizar)
+      (list
+        (list (list 'literal (valor_numerico (car stack) memoria buscar*)));stack
+        memoria
+      )
+    )
+  )
+)
+
+(defun correr_polaca (instrucciones stack memoria buscar* reasignar*)
+  (if (null instrucciones)
+    (list stack memoria)
+    (funcall 
+      (lambda (resultado)
+        (correr_polaca 
+          (cdr instrucciones) 
+          (car resultado)  
+          (cadr resultado) 
+          buscar* 
+          reasignar*
+        )
+      )
+      (correr_instruccion_polaca (car instrucciones) stack memoria buscar* reasignar*)
+    )
+  )
+)
+
+(defun nil_si_0 (v)
+  (if (null v) 0 v)
+)
+
+
+; primitivas
+(defun evaluar* (expresion memoria buscar* reasignar*)
+  (nil_si_0 
+    (cadr (caar (correr_polaca 
+      (append (polaquizar (lispizar* expresion)) (list (list 'finalizar)) )
+      (list ) 
+      memoria 
+      buscar* 
+      reasignar* 
+    )));caar: primer elemento del stack ;cadr: el literal ('literal x)
+  )
+)
+
+(defun ejecutar* (expresion memoria buscar* reasignar*)
+  (cadr (correr_polaca 
+    (append (polaquizar (lispizar* expresion)) (list (list 'finalizar)) )
+    (list ) 
+    memoria  
+    buscar* 
+    reasignar* 
   ))
-)
-
-(defun es_terminal_algebraico (e)
-  (pertenece (car e) '(variable asignar literal multiplicar dividir modulo and or xor))
-)
-
-;Primitivas sobre la lispización (que está oculta al resto del intérprete)
-(defun evaluar* (expresion memoria constantes buscar* reasignar*)
-  (evaluar_real* (lispizar* expresion) memoria constantes buscar* reasignar*)
-)
-
-(defun evaluar_real* (expresion memoria constantes buscar* reasignar*)
-  (funcall 
-    (lambda (operacion izq der ejecutar** evaluar**)
-      (cond
-        ( (eq operacion 'literal) izq )
-        ( 
-          (pertenece operacion '(variable asignar))
-          (funcall buscar* izq constantes memoria) 
-        )
-        ( 
-          (pertenece operacion '(sumar restar menor mayor menor_o_igual mayor_o_igual igual))
-          
-          (funcall 
-            (lambda (memizq)
-              (funcall 
-                (lambda (memder)
-                  (operar*
-                    operacion
-                    (funcall evaluar** izq 
-                      (funcall 
-                        (lambda (ti td)
-                          (cond
-                            ( (and ti td) memder)
-                            ( (and ti (not td)) memizq)
-                            ( (not ti) memoria)
-                          )
-                        )
-                        (es_terminal_algebraico izq) 
-                        (es_terminal_algebraico der)
-                      )
-                    )
-                    (funcall evaluar** 
-                      der 
-                      (if (es_terminal_algebraico der) memder memizq ) 
-                    )
-                  )
-                )
-                (funcall ejecutar** der memizq)
-              )
-            )
-            (funcall ejecutar** izq memoria)
-          )
-              
-            
-        )
-        
-        ( 
-          (pertenece operacion '(multiplicar dividir modulo and or xor))
-          (operar*
-            operacion
-            (funcall evaluar** izq memoria)
-            (funcall evaluar** der memoria)
-          )
-        )
-      )
-      
-      
-    )
-    (car expresion)
-    (cadr expresion)
-    (caddr expresion)
-    (lambda (expresion memoria) 
-      (ejecutar_real* expresion memoria constantes buscar* reasignar*) 
-    )
-    (lambda (expresion memoria) 
-      (evaluar_real* expresion memoria constantes buscar* reasignar*) 
-    )
-  )
-)
-(defun ejecutar* (expresion memoria constantes buscar* reasignar*)
-  (ejecutar_real* (lispizar* expresion) memoria constantes buscar* reasignar*)
-)
-
-(defun ejecutar_real* (expresion memoria constantes buscar* reasignar*)
-  (funcall 
-    (lambda (operacion izq der ejecutar** evaluar**)
-      (cond
-        ( 
-          (eq operacion 'asignar)
-          (funcall 
-            (lambda (memder)
-              (reasignar* 
-                izq 
-                (funcall evaluar** der memder) 
-                constantes 
-                memder
-              )
-            )
-            (funcall ejecutar** der memoria)
-          )
-          
-        )
-
-        ( 
-          (pertenece operacion '(literal variable))
-          memoria
-        )
-        (
-          T
-          (funcall 
-            ejecutar** 
-            der 
-            (funcall ejecutar** izq memoria);memoria izq
-          );memoria der
-        )
-      )
-      
-      
-    )
-    (car expresion)
-    (cadr expresion)
-    (caddr expresion)
-    (lambda (expresion memoria) 
-      (ejecutar_real* expresion memoria constantes buscar* reasignar*) 
-    )
-    (lambda (expresion memoria) 
-      (evaluar_real* expresion memoria constantes buscar* reasignar*) 
-    )
-  )
 )

@@ -64,18 +64,18 @@
 
 (defun valor* (expresion memoria constantes)
   ;en 'evaluar.lisp'
-  (evaluar* expresion memoria constantes 
-    (lambda (k c m) (buscar_en_memoria_completo* k c m))
-    (lambda (k c m) (reasignar* k c m))
+  (evaluar* expresion memoria
+    (lambda (k m) (buscar_en_memoria_completo* k constantes m))
+    (lambda (k v m) (reasignar* k v constantes m))
     
   )
 )
 
 (defun memoria_de_evaluar* (expresion memoria constantes)
   ;en 'evaluar.lisp'
-  (ejecutar* expresion memoria constantes 
-    (lambda (k c m) (buscar_en_memoria_completo* k c m))
-    (lambda (k c m) (reasignar* k c m))
+  (ejecutar* expresion memoria 
+    (lambda (k m) (buscar_en_memoria_completo* k constantes m))
+    (lambda (k v m) (reasignar* k v constantes m))
   )
 )
 

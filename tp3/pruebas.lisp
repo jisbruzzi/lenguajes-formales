@@ -37,6 +37,23 @@
 )
 
 
+(test (run '(
+(int x)
+(int z = 10)
+(main (
+  (printf z)
+  (if (2 < (z += 1)) (
+    (printf "si")
+  ) else (
+    (printf "no")
+  ))
+  (printf z)
+))
+) '(2))
+'(10 "si" 11)
+)
+
+
 (test (valor* '(1 - 2 * 2) nil nil)  -3)
 (test (valor* '(4 < 5) nil nil)  T)
 (test (valor* '(N < 5) '(N 4) nil)  T)
@@ -163,7 +180,6 @@
   )
   '(120)
 )
-
 
 (test 
   (run
@@ -359,25 +375,6 @@
 )
 
 
-
-
-(test (run '(
-(int x)
-(int z = 10)
-(main (
-  (printf z)
-  (if (2 < (z += 1)) (
-    (printf "si")
-  ) else (
-    (printf "no")
-  ))
-  (printf z)
-))
-) '(2))
-'(10 "si" 11)
-)
-
-
 (test (run '(
 (int x)
 (int z = 10)
@@ -477,19 +474,6 @@
 ) '(2))
 ;'(10 "no" 5); javascript
 '(10 "no" 10); javascript
-)
-
-(test (run '(
-(int x = 1)
-(int z = 10)
-(main (
-  (z =  (x = x + 2) + (x = z / 5 * ( x = x + 1 ) ))
-  (printf z)
-  (printf x)
-))
-) '(2))
-;'(11 8); javascript
-'(16 8); C
 )
 
 
@@ -632,22 +616,6 @@
 )
 
 
-(test
-
-(run '(
-(int x = 1)
-(int z = 10)
-(main (
-  (z =  ( x = x + 2) +  (x = x + 1 ) * (x = x + 1 ))
-  (printf z)
-  (printf x)
-))
-) '(2))
-
-'(30 5);chequeado contra C
-
-)
-
 
 (test
 (run '(
@@ -676,4 +644,64 @@
 ) '(2))
 
   '(39 12)
+)
+
+
+
+
+(test
+
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  ( x = x + 2) +  (x = x + 1 ) * (x = x + 1 ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+'(30 5);chequeado contra C
+
+)
+
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = x + 2) + (x = 2 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(11 8); javascript
+'(16 8); C
+)
+
+(test
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  ( x = x + 2) +  (x = x + 1 ) * (x = x + 1 ) * (x = x + 1 ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+
+  '(156 6)
+)
+
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  (z =  (x = 2 * ( x = x + 1 ) ))
+  (printf z)
+  (printf x)
+))
+) '(2))
+;'(5 4); javascript
+'(4 4);C
 )
