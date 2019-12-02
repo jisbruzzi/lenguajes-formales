@@ -35,68 +35,50 @@
 )
 
 (defun correr_instruccion_polaca (instruccion stack memoria buscar* reasignar_var*)
-  (cond
-    (
-      (eq (car instruccion) 'push_literal)
-      (list 
-        (cons 
-          (list 
-            'literal 
-            (cadr instruccion)
-          ) 
-          stack
-        ) 
-        memoria
-      )
-    )
-    (
-      (eq (car instruccion) 'pop_pop_operar_push)
-      (list 
-        (cons 
-          (list 
-            'literal 
-            (operar (cadr instruccion) (cadr stack) (car stack) memoria buscar*)
+  (funcall 
+    (lambda (push pop_pop_push pop_push stack_limpio soy)
+      (list
+        (cond
+          (
+            (funcall soy 'push_literal) (funcall push 'literal  (cadr instruccion) ) 
           )
-          (cddr stack) 
-        )
-        memoria
-      )
-    )
-    (
-      (eq (car instruccion) 'push_referencia)
-      (list
-        (cons
-          (list
-            'referencia
-            (cadr instruccion)
+          (
+            (funcall soy 'pop_pop_operar_push)
+            (funcall pop_pop_push  
+              'literal 
+              (operar (cadr instruccion) (cadr stack) (car stack) memoria buscar*)
+            )
           )
-          stack
+          (
+            (funcall soy 'push_referencia)
+            (funcall push 'referencia (cadr instruccion) )
+          )
+          (
+            (funcall soy 'ASIGNAR_Y_PUSH_REFERENCIA) (funcall pop_push 'referencia (cadr instruccion))
+          )
+          (
+            (funcall soy 'finalizar)
+            (funcall stack_limpio 'literal (valor_numerico (car stack) memoria buscar*));stack
+          )
         )
-        memoria
+
+        (if (funcall soy 'ASIGNAR_Y_PUSH_REFERENCIA)
+          (funcall reasignar_var* 
+            (cadr instruccion) 
+            (valor_numerico (car stack) memoria buscar*)
+            memoria 
+          )
+          memoria
+        )
       )
     )
-    (
-      (eq (car instruccion) 'ASIGNAR_Y_PUSH_REFERENCIA)
-      (list
-        (cons
-          (list 'referencia (cadr instruccion))
-          (cdr stack)
-        )
-        (funcall reasignar_var* 
-          (cadr instruccion) 
-          (valor_numerico (car stack) memoria buscar*)
-          memoria 
-        )
-      )
-    )
-    (
-      (eq (car instruccion) 'finalizar)
-      (list
-        (list (list 'literal (valor_numerico (car stack) memoria buscar*)));stack
-        memoria
-      )
-    )
+    (lambda (tipo arg) (cons (list tipo arg) stack));push
+    (lambda (tipo arg) (cons (list tipo arg) (cddr stack)));pop_pop_push
+    (lambda (tipo arg) (cons (list tipo arg) (cdr stack)));pop_push
+    (lambda (tipo arg) (list (list tipo arg) ));stack_limpio
+    (lambda (v) (eq (car instruccion) v))
   )
+  
 )
 
 (defun correr_polaca (instrucciones stack memoria buscar* reasignar*)
