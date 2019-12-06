@@ -8,10 +8,10 @@
 )
 (defun peso (op)
   (cond
-  ((pertenece op '(< > <= >= ==)) 1)
+    ((pertenece op '(&& || ^^)) 0)
+    ((pertenece op '(< > <= >= ==)) 1)
     ((pertenece op '(+ -)) 2)
     ((pertenece op '(* / %)) 3)
-    ((pertenece op '(&& || ^^)) 4)
   )
 )
 

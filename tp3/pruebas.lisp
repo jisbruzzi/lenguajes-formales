@@ -53,16 +53,15 @@
 '(10 "si" 11)
 )
 
-
 (test (valor* '(1 - 2 * 2) nil nil)  -3)
-(test (valor* '(4 < 5) nil nil)  T)
-(test (valor* '(N < 5) '(N 4) nil)  T)
-(test (valor* '(4 == 4) nil nil)  T)
-(test (valor* '(N == 4) '(N 4) nil)  T)
+(test (valor* '(4 < 5) nil nil)  1)
+(test (valor* '(N < 5) '(N 4) nil)  1)
+(test (valor* '(4 == 4) nil nil)  1)
+(test (valor* '(N == 4) '(N 4) nil)  1)
 (test (valor* '(5 < 4) nil nil)  0)
 (test (valor* '(5 < N) '(N 4) nil)  0)
 (test (valor* '(5 < N) nil '(N 4))  0)
-(test (valor* '(x + n - 1 < 10) '(x 1) '(N 1))  T)
+(test (valor* '(x + n - 1 < 10) '(x 1) '(N 1))  1)
 
 
 (test
@@ -721,4 +720,28 @@
 )
 
 
+(test (run '(
+(int x = 1)
+(int z = 10)
+(main (
+  ( z =  (x += 1) * (x += 1) < (x += 1) * (x += 1) )
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(1 5)
+)
 
+
+(test 
+(run '(
+(int x = 1)
+(int z = 10)
+(main (
+  ( z =  (x += 1) * (x += 1) && (x += 1) * (x += 1) )
+  (printf z)
+  (printf x)
+))
+) '(2))
+'(1 5)
+)
